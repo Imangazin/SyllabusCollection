@@ -34,11 +34,11 @@ CREATE TABLE OrganizationalUnitAncestors (
     PRIMARY KEY (OrgUnitId, AncestorOrgUnitId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CREATE TABLE Faculty (
---     FacultyId INT PRIMARY KEY,
---     Name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
---     ProjectId INT
--- ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE TABLE Faculty (
+     FacultyId INT PRIMARY KEY,
+     Name VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+     ProjectId INT
+ ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CREATE TABLE Syllabus (
 --     OrgUnitId INT PRIMARY KEY,  
