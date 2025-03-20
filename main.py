@@ -445,9 +445,9 @@ for each in term_year:
 
     #create folders in the Brightspace
     logger.info(f'Request for all course data initiated for given term: {term} and year: {year}.')
-    all_courses1 = csv_db.get_sylabus(db_config, all_courses_query, term, year)
-    print('Working with first 20 records for Debugging purposes')
-    all_courses = all_courses1.head(20)
+    all_courses = csv_db.get_sylabus(db_config, all_courses_query, term, year)
+    #print('Working with first 20 records for Debugging purposes')
+    #all_courses = all_courses1.head(20)
 
     if(each['term'] not in config['current_term']):
         logger.info('Creating folders in the BS and setting current term in .env')
@@ -465,8 +465,8 @@ for each in term_year:
 
     # Upload todays Sylabusses
     logger.info('Requesting syllabus data that are not been pushed to BS for given year and term.')
-    syllabus_to_run1 = csv_db.get_sylabus(db_config, syllabus_query, term, year)
-    syllabus_to_run = syllabus_to_run1.head(10)
+    syllabus_to_run = csv_db.get_sylabus(db_config, syllabus_query, term, year)
+    #syllabus_to_run = syllabus_to_run1.head(10)
     logger.info('Downloading syllabuses and uploading them into Project sites.')
     download_upload_syllabus(syllabus_to_run)
 
@@ -474,8 +474,8 @@ for each in term_year:
     csv_db.update_syllabus_recorded(db_config, syllabus_to_run)
 
     logger.info('Requesting new all courses data for given term and year.')
-    all_courses2 = csv_db.get_sylabus(db_config, all_courses_query,  term, year)
-    all_courses = all_courses2.head(20)
+    all_courses = csv_db.get_sylabus(db_config, all_courses_query,  term, year)
+    #all_courses = all_courses2.head(20)
     logger.info('Generating folders and html files in the server again to update the html files with new records.')
     generate_syllabus_html(all_courses, base)
 
