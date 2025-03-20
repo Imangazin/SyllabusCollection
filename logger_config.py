@@ -1,20 +1,20 @@
+import os
 import logging
 from logging.handlers import RotatingFileHandler
 
-log_file = 'datahub/application.log'
+# Define the log file path
+log_file = '/opt/SyllabusCollection/datahub/application.log'
 
-# Create a rotating file handler
-file_handler = RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=5)
-file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(message)s')
-file_handler.setFormatter(file_formatter)
+# Ensure that the directory for the log file exists
+log_dir = os.path.dirname(log_file)
+os.makedirs(log_dir, exist_ok=True)
 
-# Create a console handler (to also print logs)
-console_handler = logging.StreamHandler()
-console_formatter = logging.Formatter('%(levelname)s - %(message)s')  # Simpler format for console
-console_handler.setFormatter(console_formatter)
+# Set up the RotatingFileHandler
+handler = RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=5)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(message)s')
+handler.setFormatter(formatter)
 
-# Create logger instance
+# Create a logger instance and attach the handler
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.addHandler(file_handler)  # Write logs to file
-logger.addHandler(console_handler)  # Print logs to console
+logger.addHandler(handler)
