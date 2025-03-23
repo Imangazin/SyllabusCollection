@@ -5,6 +5,7 @@ import dotenv
 import pandas as pd
 from datetime import date
 from logger_config import logger
+import re
 
 
 syllabus_query = f"""
@@ -124,12 +125,13 @@ def download_upload_syllabus(df):
     try:
         # Loop through each row in the CSV
         for index, row in df.iterrows():
-            download_syllabus(row)
-            upload_syllabus(row)
+            filetype = classify_location(row['Location'])
+            download_syllabus(row, filetype)
+            upload_syllabus(row, filetype)
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 
-def download_syllabus(row):
+def download_syllabus(row, filetype):
     try:
         # Construct the URL with the row's Location value
         orgUnitId = row['OrgUnitId']
@@ -147,17 +149,40 @@ def download_syllabus(row):
             
         # Call save_file function to download and save the file
         logger.info(f"Processing: {file_url} -> {download_path}")
-        filename = d2l_functions.save_file(file_url, access_token, download_path, orgUnitCode)
-            
-        if filename:
-            logger.info(f"File saved successfully: {filename}")
+        
+        if (filetype=='d2l'):
+            path = os.path.join(download_path, f"syllabus_{orgUnitCode}.html")
+            create_blank_syllabus(path)
+        elif (filetype=='Link'):
+            pass
         else:
-            logger.error(f"Failed to save file for {orgUnitId}")
+            filename = d2l_functions.save_file(file_url, access_token, download_path, orgUnitCode)
+                
+            if filename:
+                logger.info(f"File saved successfully: {filename}")
+            else:
+                logger.error(f"Failed to save file for {orgUnitId}")
     except Exception as e:
         logger.error(f"An error occurred: {e}")
 
 
-def upload_syllabus(row):
+def create_blank_syllabus(path):
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Unavailable Syllabus</title>
+    </head>
+    <body>
+        <p>The syllabus is linked to Brightspace tool that is inaccessable from this site. Please contact CPI for more information.</p>
+    </body>
+    </html>
+    """
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+
+
+def upload_syllabus(row, filetype):
     try:
         # Construct the URL with the row's Location value
         orgUnitId = row['ProjectId']
@@ -168,14 +193,18 @@ def upload_syllabus(row):
 
         upload_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/upload"
         #file_name = os.path.basename(location)
-        _, file_extension = os.path.splitext(os.path.basename(location))
-        file_name = f"syllabus_{row['Code']}{file_extension}"
-        file_path = f"{base}/{department}/{year}/{term}/{file_name}"
-        file_key = d2l_functions.initiate_resumable_upload(config['bspace_url'], upload_url, access_token, file_path)
-        if (file_key):
-            save_file_payload = {"fileKey":file_key,
-                                 "relativePath": f"{department}/{year}/{term}"}
-            d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
+        if filetype=='Link':
+            pass
+        else:
+            _, file_extension = os.path.splitext(os.path.basename(location))
+            if (filetype=='d2l'): file_extension = '.html'
+            file_name = f"syllabus_{row['Code']}{file_extension}"
+            file_path = f"{base}/{department}/{year}/{term}/{file_name}"
+            file_key = d2l_functions.initiate_resumable_upload(config['bspace_url'], upload_url, access_token, file_path)
+            if (file_key):
+                save_file_payload = {"fileKey":file_key,
+                                    "relativePath": f"{department}/{year}/{term}"}
+                d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
 
     except Exception as e:
@@ -301,12 +330,10 @@ def add_content_module(df, year, term):
             child_module_id = child_module_call.json()['Id']
 
         # check if topic html file exists in given Department and Year, if not create topic linked to an existing html file in the Course File Management 
-        topic_id = check_topic_in_module(toc_json, department, year, f"Term - {term}")
+        topic_id = check_topic_in_module(toc_json, department, str(year), f"Term - {term}")
         if topic_id is None:
             topic_call = d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/le/1.80/{orgUnitId}/content/modules/{child_module_id}/structure/", access_token, data=(topic_payload), json_data=True)
             
-
-
 
 
 def upload_content_html(df, year, term):
@@ -327,6 +354,15 @@ def upload_content_html(df, year, term):
             d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
 
+def classify_location(value):
+    value = str(value).strip()
+    if re.match(r'^https?://', value, re.IGNORECASE):
+        return 'Link'
+
+    if value.lower().startswith('d2l') or value.startswith('/d2l/'):
+        return 'd2l'
+
+    return None
 
 def generate_syllabus_html(df, base_output_dir):
     # Group by Department, Year, and Term
@@ -371,16 +407,18 @@ def generate_syllabus_html(df, base_output_dir):
 
         # Add table rows
         for _, row in group.iterrows():
-            # Convert IsActive to a readable status
-            course_status = "Active" if str(row["IsActive"]) == "1" else "InActive"
 
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
 
             if row['Recorded']==1:
-                _, file_extension = os.path.splitext(os.path.basename(row['Location']))
-                href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
-                syllabus_link = f"<a href={href}>{row['Code']}</a>"
+                if (classify_location(row['Location']) == 'Link'):
+                    syllabus_link = f"<a href={row['Location']} target='_blank'>{row['Code']}</a>"
+                else:
+                    _, file_extension = os.path.splitext(os.path.basename(row['Location']))
+                    if (classify_location(row['Location']) == 'd2l'): file_extension = '.html'
+                    href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
+                    syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
             else: 
                 syllabus_link = row['Code']
 
