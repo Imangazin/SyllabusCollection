@@ -174,7 +174,8 @@ def create_blank_syllabus(path):
         <title>Unavailable Syllabus</title>
     </head>
     <body>
-        <p>The syllabus is linked to Brightspace tool that is inaccessable from this site. Please contact CPI for more information.</p>
+            <h3>Unavailable Syllabus.</h3>
+            <p>The syllabus for this course cannot be retrieved from its current Brightspace location (e.g., Discussions, Assignments, etc). Please contact the instructor to have them upload the syllabus to the Content area of Brightspace instead.</p>
     </body>
     </html>
     """
