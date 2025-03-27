@@ -75,7 +75,7 @@ def get_academic_term(current_date):
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
-    elif (current_date>=date(year,1,1) and current_date<date(year,3,25)):
+    elif (current_date>=date(year,1,1) and current_date<date(year,3,28)):
         return ([{'term': 'FW', 'year':year-1, 'identifier':'FW'}])
     else:
         return ([{'term': 'SP', 'year':year, 'identifier':'SP'}, {'term': 'SU', 'year':year, 'identifier':'SPSU'}])
@@ -388,21 +388,22 @@ def generate_syllabus_html(df, base_output_dir):
         <!DOCTYPE html>
         <html>
         <head>
+            <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+            <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" />
+            <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>    
             <title>Syllabus Table for {department} - {year} - {term}</title>
-            <style>
-                table {{ width: 100%; border-collapse: collapse; }}
-                th, td {{ border: 1px solid black; padding: 8px; text-align: left; }}
-                th {{ background-color: #f2f2f2; }}
-            </style>
         </head>
         <body>
             <h2>Syllabus for {department} - {year} - {term}</h2>
             <p>Total Courses: {total_courses}, Syllabuses Available: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
-            <table>
-                <tr>
-                    <th>Course Code</th>
-                    <th>Action</th>
-                </tr>
+            <table id="{department}-{year}-{term}" class="display">
+                <thead>
+                    <tr>
+                        <th>Course Code</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
         """
 
         # Add table rows
@@ -430,8 +431,23 @@ def generate_syllabus_html(df, base_output_dir):
             """
 
         # Close HTML tags
-        html_content += """
+        html_content += f"""
+                </tbody>
             </table>
+            <script>$('#{department}-{year}-{term}').DataTable({{
+                lengthMenu: [
+                    [50, 100, 150, 200, 250],
+                    ['50 per page', '100 per page', '150 per page', '200 per page', '250 per page']
+                    ],
+                language: {{
+                    lengthMenu: '_MENU_',
+                    searchPlaceholder: 'Search For ...',
+                    search: '_INPUT_'
+                }},
+                stateSave: true,
+                info: false
+            }});
+            </script>
         </body>
         </html>
         """
