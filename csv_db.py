@@ -176,7 +176,8 @@ def write_to_table(conn, table, df, table_columns, batch_size=1000):
     cursor = conn.cursor()
 
     placeholders = ", ".join(["%s"] * len(table_columns))
-    update_placeholders = ", ".join([f"{col} = VALUES({col})" for col in table_columns])
+    #update_placeholders = ", ".join([f"{col} = VALUES({col})" for col in table_columns])
+    update_placeholders = ", ".join([f"{col} = VALUES({col})" for col in table_columns if col != 'Recorded'])
 
     query = f"""
         INSERT INTO {table} ({', '.join(table_columns)}) 
