@@ -167,11 +167,12 @@ def download_syllabus(row, filetype):
 
 
 def create_blank_syllabus(path):
-    html_content = """
+    html_content = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <title>Unavailable Syllabus</title>
+        <link rel="stylesheet" href="{config['bspace_url']}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
     </head>
     <body>
             <h3>Unavailable Syllabus.</h3>
@@ -391,6 +392,7 @@ def generate_syllabus_html(df, base_output_dir):
         <head>
             <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
             <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" />
+            <link rel="stylesheet" href="{config['bspace_url']}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
             <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>    
             <title>Syllabus Table for {department} - {year} - {term}</title>
         </head>
