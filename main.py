@@ -84,7 +84,7 @@ def get_academic_term(current_date):
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
-    elif (current_date>=date(year,1,1) and current_date<date(year,3,30)):
+    elif (current_date>=date(year,1,1) and current_date<date(year,3,27)):
         return ([{'term': 'FW', 'year':year-1, 'identifier':'FW'}])
     else:
         return ([{'term': 'SP', 'year':year, 'identifier':'SP'}, {'term': 'SU', 'year':year, 'identifier':'SPSU'}])
