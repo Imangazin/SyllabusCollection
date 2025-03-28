@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import date
 from logger_config import logger
 import re
+import sys
 
 
 syllabus_query = f"""
@@ -45,7 +46,15 @@ all_courses_query = f"""
         AND f.ProjectId IS NOT NULL;
     """
 
-def get_config():
+def get_config(mode):
+    if mode=='full':
+        content_object_plugin_id = os.environ["content_object_plugin_id"]
+        org_units_plugin_id = os.environ["org_units_plugin_id"]
+        org_units_ancestors_plugin_id = os.environ["org_units_ancestors_plugin_id"]
+    else:
+        content_object_plugin_id = os.environ["diff_content_object_plugin_id"]
+        org_units_plugin_id = os.environ["diff_org_units_plugin_id"]
+        org_units_ancestors_plugin_id = os.environ["diff_org_units_ancestors_plugin_id"]
     return {
         "bspace_url": os.environ["bspace_url"],
         "client_id": os.environ["client_id"],
@@ -53,9 +62,9 @@ def get_config():
         "scope": os.environ["scope"],
         "refresh_token": os.environ["refresh_token"],
         "datasets":[
-            {"schema_id":os.environ["content_object_schema_id"], "plugin_id":os.environ["content_object_plugin_id"]},
-            {"schema_id":os.environ["org_units_schema_id"], "plugin_id":os.environ["org_units_plugin_id"]},
-            {"schema_id":os.environ["org_units_ancestors_schema_id"], "plugin_id":os.environ["org_units_ancestors_plugin_id"]}
+            {"schema_id":os.environ["content_object_schema_id"], "plugin_id":content_object_plugin_id},
+            {"schema_id":os.environ["org_units_schema_id"], "plugin_id":org_units_plugin_id},
+            {"schema_id":os.environ["org_units_ancestors_schema_id"], "plugin_id":org_units_ancestors_plugin_id}
         ],
         "current_term":os.environ["current_term"]
     }
@@ -75,7 +84,7 @@ def get_academic_term(current_date):
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
-    elif (current_date>=date(year,1,1) and current_date<date(year,3,28)):
+    elif (current_date>=date(year,1,1) and current_date<date(year,3,30)):
         return ([{'term': 'FW', 'year':year-1, 'identifier':'FW'}])
     else:
         return ([{'term': 'SP', 'year':year, 'identifier':'SP'}, {'term': 'SU', 'year':year, 'identifier':'SPSU'}])
@@ -463,9 +472,22 @@ def generate_syllabus_html(df, base_output_dir):
 
 # get configs
 logger.info("Started...")
+
+if len(sys.argv) != 2:
+    print("Usage: python run_mode.py [full|differential]")
+    logger.error("Terminating, incorrect run. Usage: python3 main.py [full|differential]")
+    sys.exit(1)
+
+mode = sys.argv[1].lower()
+
+if mode not in ['full', 'differential']:
+    print("Error: Invalid argument. Only 'full' or 'differential' are allowed.")
+    logger.error("Terminating: Invalid argument. Only 'full' or 'differential' are allowed.")
+    sys.exit(1)
+    
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
-config = get_config()
+config = get_config(mode)
 
 base = 'downloads'
 os.makedirs(base, exist_ok=True)
