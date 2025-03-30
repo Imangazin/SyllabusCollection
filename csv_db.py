@@ -105,8 +105,9 @@ def setOrganizationalUnits(conn):
     ]
 
     filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
-    filtered_content_objects_df.loc[:, 'Recorded'] = 0
-
+    if not filtered_content_objects_df.empty:
+        filtered_content_objects_df.loc[:, 'Recorded'] = 0
+        
     table_columns_dict = get_table_columns(cursor, 'ContentObjects')
     table_columns = list(table_columns_dict.keys())
     datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
