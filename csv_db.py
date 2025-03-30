@@ -103,19 +103,16 @@ def setOrganizationalUnits(conn):
     filtered_content_objects_df = content_objects_df[
         content_objects_df["OrgUnitId"].isin(filtered_df["OrgUnitId"])
     ]
+    table_columns_dict = get_table_columns(cursor, 'ContentObjects')
+    table_columns = list(table_columns_dict.keys())
+    datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
 
     filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
     if not filtered_content_objects_df.empty:
         filtered_content_objects_df.loc[:, 'Recorded'] = 0
-        
-    table_columns_dict = get_table_columns(cursor, 'ContentObjects')
-    table_columns = list(table_columns_dict.keys())
-    datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
-    
-    filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, datetime_columns)
-    filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
-
-    write_to_table(conn, 'ContentObjects', filtered_content_objects_df, table_columns)
+        filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, datetime_columns)
+        filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
+        write_to_table(conn, 'ContentObjects', filtered_content_objects_df, table_columns)
 
     cursor.close()
 
