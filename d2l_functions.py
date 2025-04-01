@@ -187,4 +187,13 @@ def save_and_unzip_file(url, access_token, download_path):
         full_path = os.path.join(os.path.dirname(download_path), filename)
         unzip_file(full_path, download_path)
 
+def is_folder_exists(url, access_token, folder):
+    response = get_with_auth(url, access_token)
+    if response is not None:
+        data = response.json()
+        for obj in data.get("Objects", []):
+            if obj.get("Name") == folder and obj.get("FileSystemObjectType") == 1:
+                return True
+    else:
+        return False
 
