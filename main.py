@@ -232,15 +232,19 @@ def create_BS_folders(df, year, term):
         orgUnitId = row['ProjectId']
         department = row['Department']
         create_folder_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/folder"
+        check_folder_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/"
 
-        create_folder_payload = {"RelativePath": f"{department}"}
-        d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
+        if not (d2l_functions.is_folder_exists(check_folder_url, access_token, department)):
+            create_folder_payload = {"RelativePath": f"{department}"}
+            d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
 
-        create_folder_payload = {"RelativePath": f"{department}/{year}"}
-        d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
+        if not (d2l_functions.is_folder_exists(f"{check_folder_url}?path={department}", access_token, str(year))):
+            create_folder_payload = {"RelativePath": f"{department}/{year}"}
+            d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
 
-        create_folder_payload = {"RelativePath": f"{department}/{year}/{term}"}
-        d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
+        if not (d2l_functions.is_folder_exists(f"{check_folder_url}?path={department}/{year}", access_token, term)):
+            create_folder_payload = {"RelativePath": f"{department}/{year}/{term}"}
+            d2l_functions.post_with_auth(create_folder_url, access_token, data=(create_folder_payload), json_data=True)
 
 
 def check_root_module(data, root_title):
@@ -525,13 +529,9 @@ for each in term_year:
     #create folders in the Brightspace
     logger.info(f'Request for all course data initiated for given term: {term} and year: {year}.')
     all_courses = csv_db.get_sylabus(db_config, all_courses_query, term, year)
-    #print('Working with first 20 records for Debugging purposes')
-    #all_courses = all_courses1.head(20)
 
-    if(each['term'] not in config['current_term']):
-        logger.info('Creating folders in the BS and setting current term in .env')
-        create_BS_folders(all_courses, year, term)
-        set_current_term(each['identifier'])
+    logger.info('Creating folders in the BS')
+    create_BS_folders(all_courses, year, term)
 
     logger.info('Generating folders in the server and html per Department->Year->Term.')
     generate_syllabus_html(all_courses,base)
@@ -545,7 +545,6 @@ for each in term_year:
     # Upload todays Sylabusses
     logger.info('Requesting syllabus data that are not been pushed to BS for given year and term.')
     syllabus_to_run = csv_db.get_sylabus(db_config, syllabus_query, term, year)
-    #syllabus_to_run = syllabus_to_run1.head(10)
     logger.info('Downloading syllabuses and uploading them into Project sites.')
     download_upload_syllabus(syllabus_to_run)
 
@@ -554,7 +553,6 @@ for each in term_year:
 
     logger.info('Requesting new all courses data for given term and year.')
     all_courses = csv_db.get_sylabus(db_config, all_courses_query,  term, year)
-    #all_courses = all_courses2.head(20)
     logger.info('Generating folders and html files in the server again to update the html files with new records.')
     generate_syllabus_html(all_courses, base)
 
