@@ -442,7 +442,7 @@ def generate_syllabus_html(df, base_output_dir):
             html_content += f"""
                 <tr>
                     <td>{syllabus_link}</td>
-                    <td></td>
+                    <td class="action-cell"></td>
                 </tr>
             """
 
@@ -463,6 +463,12 @@ def generate_syllabus_html(df, base_output_dir):
                 stateSave: true,
                 info: false
             }});
+            const actions = `
+                <button class="icon-btn upload" title="Upload"></button>
+                <button class="icon-btn exempt" title="Exempt"></button>
+            `;
+
+            $('.action-cell').html(actions);
             </script>
         </body>
         </html>
