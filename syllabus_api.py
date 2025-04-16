@@ -23,6 +23,7 @@ def upload():
 
 @app.route('/api/exempt', methods=['POST'])
 def exempt():
+    print("Exempt API was called")
     course = request.args.get('course')
     token = request.args.get('token')
 
