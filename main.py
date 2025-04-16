@@ -441,7 +441,7 @@ def generate_syllabus_html(df, base_output_dir):
             else: 
                 syllabus_link = row['Code']
 
-            url_token = api_auth.generate_token(row['Code'], config['secret_ket'])
+            url_token = api_auth.generate_token(row['Code'], config['secret_key'])
             upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}"
             exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}"
 
