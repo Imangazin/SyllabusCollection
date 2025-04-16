@@ -7,6 +7,7 @@ from datetime import date
 from logger_config import logger
 import re
 import sys
+import api_auth
 
 
 syllabus_query = f"""
@@ -66,7 +67,8 @@ def get_config(mode):
             {"schema_id":os.environ["org_units_schema_id"], "plugin_id":org_units_plugin_id},
             {"schema_id":os.environ["org_units_ancestors_schema_id"], "plugin_id":org_units_ancestors_plugin_id}
         ],
-        "current_term":os.environ["current_term"]
+        "current_term":os.environ["current_term"],
+        "secret_key":os.environ["secret_key"]
     }
 
 def get_db_config():
@@ -439,10 +441,17 @@ def generate_syllabus_html(df, base_output_dir):
             else: 
                 syllabus_link = row['Code']
 
+            url_token = api_auth.generate_token(row['Code'], config['secret_ket'])
+            upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}"
+            exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}"
+
             html_content += f"""
                 <tr>
                     <td>{syllabus_link}</td>
-                    <td class="action-cell"></td>
+                    <td>
+                        <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
+                        <button class="icon-btn exempt" title="Exempt" data-url="{exempt_url}"></button>
+                    </td>
                 </tr>
             """
 
@@ -462,14 +471,8 @@ def generate_syllabus_html(df, base_output_dir):
                 }},
                 stateSave: true,
                 info: false
-            }});
-            const actions = `
-                <button class="icon-btn upload" title="Upload"></button>
-                <button class="icon-btn exempt" title="Exempt"></button>
-            `;
-
-            $('.action-cell').html(actions);
-            </script>
+            }});</script>
+            <script src="{config['bspace_url']}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
         </body>
         </html>
         """
