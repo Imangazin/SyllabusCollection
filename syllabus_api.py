@@ -5,10 +5,12 @@ import api_auth
 app = Flask(__name__)
 CORS(app, origins=["https://brocktest.brightspace.com"])
 
+
 @app.route('/api/upload', methods=['POST'])
 def upload():
     course = request.args.get('course')
     token = request.args.get('token')
+
     
     if not course or not token or not api_auth.verify_token(course, token):
         abort(403, 'Invalid or missing signature')
