@@ -3,7 +3,7 @@ from flask_cors import CORS
 import api_auth
 
 app = Flask(__name__)
-CORS(app)  # Allows access from any origin. You can restrict it with origins=[] if needed.
+CORS(app, origins=["https://brocktest.brightspace.com"])
 
 @app.route('/api/upload', methods=['POST'])
 def upload():
@@ -28,6 +28,7 @@ def exempt():
 
     if not course or not token or not api_auth.verify_token(course, token):
         abort(403, 'Invalid or missing signature')
+
 
     # Perform exemption logic here
     return jsonify({"status": "success", "message": f"{course} has been exempted"}), 200
