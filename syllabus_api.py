@@ -21,19 +21,19 @@ def get_config():
         "scope": os.environ["scope"],
         "refresh_token": os.environ["refresh_token"],
         "access_token": os.environ["access_token"],
-        "timestamp": os.environ["timestamp"],
-        "expires_in": os.environ["expires_in"]
+        "timestamp": os.environ["timestamp"]
     }
 
 def get_access_token():
     now = time.time()
     config = get_config()
     buffer_seconds = 300
-    if (config["access_token"] is None or (now - config["timestamp"]) >= (config["expires_in"] - buffer_seconds)):
+    expires_in = 7200
+    if (config["access_token"] is None or (now - float(config["timestamp"])) >= (expires_in - buffer_seconds)):
         authorize_to_d2l = d2l_functions.trade_in_refresh_token(config)
         access_token = authorize_to_d2l['access_token']
         refresh_token = authorize_to_d2l['refresh_token']
-        d2l_functions.set_refresh_token(refresh_token, access_token, now)
+        d2l_functions.set_refresh_token(refresh_token, access_token, str(now))
         return access_token
     return config["access_token"]
 

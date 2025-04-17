@@ -308,7 +308,7 @@ now = time.time()
 authorize_to_d2l = d2l_functions.trade_in_refresh_token(config)
 access_token = authorize_to_d2l['access_token']
 refresh_token = authorize_to_d2l['refresh_token']
-d2l_functions.set_refresh_token(refresh_token, access_token, now)
+d2l_functions.set_refresh_token(refresh_token, access_token, str(now))
 logger.info('Tokens are set.')
 
 
