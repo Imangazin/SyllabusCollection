@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import date
 from logger_config import logger
 import sys
+import time
 
 
 syllabus_query = f"""
@@ -78,10 +79,6 @@ def get_academic_term(current_date):
     else:
         return ([{'term': 'SP', 'year':year, 'identifier':'SP'}, {'term': 'SU', 'year':year, 'identifier':'SPSU'}])
 
-def set_refresh_token(refresh_token):
-    os.environ["refresh_token"] = refresh_token
-    dotenv.set_key(dotenv_file, "refresh_token", os.environ["refresh_token"])
-    dotenv.load_dotenv(dotenv_file)
 
 def get_data_hub_reports():
     # Loop through datasets in config
@@ -307,10 +304,11 @@ base = 'downloads'
 os.makedirs(base, exist_ok=True)
 
 # Get access token and update the refresh token in environment variables
+now = time.time()
 authorize_to_d2l = d2l_functions.trade_in_refresh_token(config)
 access_token = authorize_to_d2l['access_token']
 refresh_token = authorize_to_d2l['refresh_token']
-set_refresh_token(refresh_token)
+d2l_functions.set_refresh_token(refresh_token, access_token, now)
 logger.info('Tokens are set.')
 
 

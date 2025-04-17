@@ -6,6 +6,24 @@ from logger_config import logger
 import dotenv
 import os
 
+department_courses_query = f"""
+        SELECT 
+            ou.OrgUnitId, ou.Name, ou.Code, ou.IsActive, ou.CreatedDate,
+            ou.Year, ou.Term, ou.Duration, ou.Section, ou.Department, 
+            ou.CourseNumber, ou.SectionType,
+            co.Location, co.IsDeleted, co.Recorded,
+            oua.AncestorOrgUnitId AS FacultyId,
+            f.ProjectId
+        FROM OrganizationalUnits ou
+        LEFT JOIN ContentObjects co ON ou.OrgUnitId = co.OrgUnitId
+        LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+        LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+        WHERE ou.Year = %s 
+        AND ou.Term = %s 
+        AND ou.Department = %s
+        AND f.ProjectId IS NOT NULL;
+    """
+
 file_path = 'datahub/'
 os.makedirs(file_path, exist_ok=True)
 
@@ -229,11 +247,6 @@ def get_sylabus(query, term, year):
         column_names = [desc[0] for desc in cursor.description]
         df_syllabus = pd.DataFrame(syllabus_results, columns=column_names)
 
-        # Save the results as a CSV file DEBUGing purposes, delete this line later
-        syllabus_csv_file = os.path.join(file_path, "syllabus_data.csv")
-        df_syllabus.to_csv(syllabus_csv_file, index=False)
-        logger.info(f"Syllabus query results saved to: {syllabus_csv_file}")
-
         if df_syllabus.empty:
             logger.warning("No syllabus records found.")
 
@@ -248,7 +261,8 @@ def get_sylabus(query, term, year):
         conn.close()
 
 
-def update_syllabus_recorded(df, batch_size=1000):
+def update_syllabus_recorded(df, value=1):
+    batch_size=1000
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -259,7 +273,7 @@ def update_syllabus_recorded(df, batch_size=1000):
     """
     
     # Prepare the data as a list of tuples
-    data = [(1, row['OrgUnitId']) for _, row in df.iterrows()]
+    data = [(value, row['OrgUnitId']) for _, row in df.iterrows()]
 
     try:
         for i in range(0, len(data), batch_size):
@@ -301,3 +315,50 @@ def create_main_tables(file_path):
     finally:
         cursor.close()
         connection.close()
+
+
+def get_orgUnitId_by_code(code):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT OrgUnitId FROM OrganizationalUnits WHERE Code = %s"
+        cursor.execute(query, (code,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+
+    except mysql.connector.Error as err:
+        print(f"Database error: {err}")
+        return None
+
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+def get_department_cources(term, year, department):
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        logger.info("Executing department courses query...")
+        cursor.execute(department_courses_query, (year, term, department))
+        syllabus_results = cursor.fetchall()
+
+        # Fetch column names
+        column_names = [desc[0] for desc in cursor.description]
+        df_syllabus = pd.DataFrame(syllabus_results, columns=column_names)
+
+        if df_syllabus.empty:
+            logger.warning("No course records found.")
+
+        return df_syllabus
+
+    except mysql.connector.Error as err:
+        logger.error(f"Error executing syllabus query: {err}")
+        return pd.DataFrame()  # Return an empty DataFrame instead of None
+
+    finally:
+        cursor.close()
+        conn.close()

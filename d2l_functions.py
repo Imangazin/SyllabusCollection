@@ -11,18 +11,9 @@ import api_auth
 import re
 
 
-def get_config():
-    return {
-        "bspace_url": os.environ["bspace_url"],
-        "client_id": os.environ["client_id"],
-        "client_secret": os.environ["client_secret"],
-        "scope": os.environ["scope"],
-        "refresh_token": os.environ["refresh_token"]
-    }
-
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
-config = get_config()
+bspace_url = os.environ["bspace_url"]
 
 # Gets access (7200 seconds) and refresh tokens. Calls put_config() to update the refresh token in file.
 def trade_in_refresh_token(config):
@@ -45,6 +36,19 @@ def trade_in_refresh_token(config):
     except KeyError:
         logger.error("Error: Unexpected response format.")
         return None
+
+
+def set_refresh_token(refresh_token, access_token, timestamp):
+    os.environ["refresh_token"] = refresh_token
+    dotenv.set_key(dotenv_file, "refresh_token", os.environ["refresh_token"])
+
+    os.environ["access_token"] = access_token
+    dotenv.set_key(dotenv_file, "access_token", os.environ["access_token"])
+
+    os.environ["timestamp"] = timestamp
+    dotenv.set_key(dotenv_file, "timestamp", os.environ["timestamp"])
+
+    dotenv.load_dotenv(dotenv_file)
 
 # d2l GET call
 def get_with_auth(endpoint, access_token):
@@ -224,7 +228,7 @@ def upload_syllabus(row, filetype, access_token):
         year = str(row['Year'])
         term = str(row['Term'])
 
-        upload_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/upload"
+        upload_url = f"{bspace_url}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/upload"
         #file_name = os.path.basename(location)
         if filetype=='Link':
             pass
@@ -233,11 +237,11 @@ def upload_syllabus(row, filetype, access_token):
             if (filetype=='d2l'): file_extension = '.html'
             file_name = f"syllabus_{row['Code']}{file_extension}"
             file_path = f"downloads/{department}/{year}/{term}/{file_name}"
-            file_key = initiate_resumable_upload(config['bspace_url'], upload_url, access_token, file_path)
+            file_key = initiate_resumable_upload(bspace_url, upload_url, access_token, file_path)
             if (file_key):
                 save_file_payload = {"fileKey":file_key,
                                     "relativePath": f"{department}/{year}/{term}"}
-                post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
+                post_with_auth(f"{bspace_url}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
 
     except Exception as e:
@@ -252,14 +256,14 @@ def upload_content_html(df, year, term, access_token):
     for index, row in grouped.iterrows():
         orgUnitId = row['ProjectId']
         department = row['Department']
-        upload_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/upload"
+        upload_url = f"{bspace_url}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/upload"
         file_name = f"syllabus_table_{str(department)}_{str(year)}_{str(term)}.html"
         file_path = f"downloads/{department}/{year}/{term}/{file_name}"
-        file_key = initiate_resumable_upload(config['bspace_url'], upload_url, access_token, file_path)
+        file_key = initiate_resumable_upload(bspace_url, upload_url, access_token, file_path)
         if (file_key):
             save_file_payload = {"fileKey":file_key,
                                  "relativePath": f"{department}/{year}/{term}"}
-            post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
+            post_with_auth(f"{bspace_url}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
 
 
@@ -272,7 +276,7 @@ def generate_syllabus_html(df, base_output_dir):
         group = group.sort_values(by=["Duration","CourseNumber","Section"], ascending=True)
         # Count total courses and syllabuses recorded
         total_courses = len(group)
-        recorded_syllabuses = group['Recorded'].fillna(0).astype(int).sum()
+        recorded_syllabuses = (group['Recorded'].fillna(0).astype(int) != 0).sum()
         recorded_percentage = (recorded_syllabuses / total_courses) * 100 if total_courses > 0 else 0
 
         # Define folder structure
@@ -289,7 +293,7 @@ def generate_syllabus_html(df, base_output_dir):
         <head>
             <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
             <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.css" />
-            <link rel="stylesheet" href="{config['bspace_url']}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
+            <link rel="stylesheet" href="{bspace_url}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
             <script src="https://cdn.datatables.net/2.2.2/js/dataTables.js"></script>    
             <title>Syllabus Table for {department} - {year} - {term}</title>
         </head>
@@ -320,6 +324,8 @@ def generate_syllabus_html(df, base_output_dir):
                     if (classify_location(row['Location']) == 'd2l'): file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
+            elif row['Recorded']==2:
+                syllabus_link = f"{row['Code']} (exempted)"
             else: 
                 syllabus_link = row['Code']
 
@@ -354,7 +360,7 @@ def generate_syllabus_html(df, base_output_dir):
                 stateSave: true,
                 info: false
             }});</script>
-            <script src="{config['bspace_url']}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
+            <script src="{bspace_url}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
         </body>
         </html>
         """
@@ -370,7 +376,7 @@ def create_blank_syllabus(path):
     <html>
     <head>
         <title>Unavailable Syllabus</title>
-        <link rel="stylesheet" href="{config['bspace_url']}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
+        <link rel="stylesheet" href="{bspace_url}/shared/Widgets/SyllabusUpload/css/syllabus_collection_styles.css" />
     </head>
     <body>
             <h3>Unavailable Syllabus.</h3>
