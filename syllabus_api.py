@@ -75,7 +75,7 @@ def exempt():
     orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
     print(f'OrgUnitId: {orgUnitId}')
     # Update the DB, mark the course as exempted by changing Recorded field value to 2.
-    if(orgUnitId is not None)
+    if(orgUnitId is not None):
         exempt_df = pd.DataFrame([{'OrgUnitId': int(orgUnitId)}])
         csv_db.update_syllabus_recorded(exempt_df, 2)
 
