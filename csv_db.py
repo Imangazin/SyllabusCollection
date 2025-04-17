@@ -3,12 +3,27 @@ import mysql.connector
 import os
 import re
 from logger_config import logger
+import dotenv
+import os
 
 file_path = 'datahub/'
 os.makedirs(file_path, exist_ok=True)
 
+def get_db_config():
+    return {
+        "host": os.environ["host"],
+        "user": os.environ["user"],
+        "password": os.environ["password"],
+        "database": os.environ["database"], 
+    }
+
+dotenv_file = dotenv.find_dotenv()
+dotenv.load_dotenv(dotenv_file)
+
+db_config = get_db_config()
+
 # Connect to the database
-def get_db_connection(db_config):
+def get_db_connection():
     return mysql.connector.connect(**db_config)
 
 # Read CSV file
@@ -156,8 +171,8 @@ def setAncestors(conn):
     cursor.close()
 
 # Sets the temporarly tables and writes daily data to them
-def setDb(db_config):
-    conn = get_db_connection(db_config)
+def setDb():
+    conn = get_db_connection()
 
     logger.info('Running OrganizationalUnits and Content Objects...')
     setOrganizationalUnits(conn)
@@ -200,9 +215,9 @@ def write_to_table(conn, table, df, table_columns, batch_size=1000):
         cursor.close()
 
 
-def get_sylabus(db_config, query, term, year):
+def get_sylabus(query, term, year):
 
-    conn = get_db_connection(db_config)
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
@@ -233,8 +248,8 @@ def get_sylabus(db_config, query, term, year):
         conn.close()
 
 
-def update_syllabus_recorded(db_config, df, batch_size=1000):
-    conn = get_db_connection(db_config)
+def update_syllabus_recorded(df, batch_size=1000):
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     update_query = """
@@ -261,7 +276,7 @@ def update_syllabus_recorded(db_config, df, batch_size=1000):
 
 
 # Function to execute SQL script from file
-def create_main_tables(file_path, db_config):
+def create_main_tables(file_path):
     try:
         # Connect to the database
         connection = mysql.connector.connect(**db_config)

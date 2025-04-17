@@ -32,8 +32,13 @@ def exempt():
     if not course or not token or not api_auth.verify_token(course, token):
         abort(403, 'Invalid or missing signature')
 
+    # Will be creating blank html page
 
-    # Perform exemption logic here
+
+
+
+
+
     return jsonify({"status": "success", "message": f"{course} has been exempted"}), 200
 
 if __name__ == '__main__':
