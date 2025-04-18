@@ -265,7 +265,7 @@ def update_syllabus_recorded(df, value=1):
     batch_size=1000
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     update_query = """
         UPDATE ContentObjects 
         SET Recorded = %s 
@@ -273,7 +273,7 @@ def update_syllabus_recorded(df, value=1):
     """
     
     # Prepare the data as a list of tuples
-    data = [(value, row['OrgUnitId']) for _, row in df.iterrows()]
+    data = [(int(value), int(row['OrgUnitId'])) for _, row in df.iterrows()]
 
     try:
         for i in range(0, len(data), batch_size):
