@@ -274,7 +274,7 @@ def update_syllabus_recorded(df, value=1):
     
     # Prepare the data as a list of tuples
     data = [(int(value), int(row['OrgUnitId'])) for _, row in df.iterrows()]
-
+    print(data)
     try:
         for i in range(0, len(data), batch_size):
             batch = data[i:i + batch_size]
