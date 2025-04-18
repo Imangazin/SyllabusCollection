@@ -73,18 +73,18 @@ def exempt():
     # Will be creating blank html page
     year, term, department = extract_info(course_code)
     orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
-    print(f'OrgUnitId: {orgUnitId}')
-    # # Update the DB, mark the course as exempted by changing Recorded field value to 2.
-    # exempt_df = pd.DataFrame([{'OrgUnitId': int(orgUnitId)}])
-    # csv_db.update_syllabus_recorded(exempt_df, 2)
 
-    # # Recreate the html file
-    # department_courses_df = csv_db.get_department_cources(term, year, department)
-    # d2l_functions.generate_syllabus_html(department_courses_df, 'downloads')
+    # Update the DB, mark the course as exempted by changing Recorded field value to 2.
+    exempt_df = pd.DataFrame([{'OrgUnitId': int(orgUnitId)}])
+    csv_db.update_syllabus_recorded(exempt_df, 2)
 
-    # #Upload it to BS
-    # access_token = get_access_token()
-    # d2l_functions.upload_content_html(department_courses_df, year, term, access_token)
+    # Recreate the html file
+    department_courses_df = csv_db.get_department_cources(term, year, department)
+    d2l_functions.generate_syllabus_html(department_courses_df, 'downloads')
+
+    #Upload it to BS
+    access_token = get_access_token()
+    d2l_functions.upload_content_html(department_courses_df, year, term, access_token)
 
     return jsonify({"status": "success", "message": f"{course_code} has been exempted. OrgUnitID={orgUnitId}"}), 200
 
