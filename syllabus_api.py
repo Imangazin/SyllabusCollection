@@ -77,9 +77,9 @@ def exempt():
 
     # Update the DB, mark the course as exempted by changing Recorded field value to 2.
     exempt_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
-    if exempt_value==0:
+    if exempt_value=='1':
         csv_db.update_syllabus_recorded(exempt_df, 2)
-    else: 
+    elif exempt_value=='0': 
         csv_db.update_syllabus_recorded(exempt_df, 0)
 
     # Recreate the html file
