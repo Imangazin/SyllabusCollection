@@ -21,7 +21,12 @@ $(document).on('click', '.upload', function () {
       method: 'POST',
     })
     .then(res => res.json())
-    .then(data => console.log(data))
+    .then(data => {
+      console.log(data);
+      if (data && data.status === 'success') {
+        location.reload();
+      }
+    })
     .catch(err => console.error('Exempt error:', err));
   });
 

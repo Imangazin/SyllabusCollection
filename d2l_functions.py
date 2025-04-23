@@ -313,7 +313,7 @@ def generate_syllabus_html(df, base_output_dir):
         # Add table rows
         for _, row in group.iterrows():
 
-            exempt_value = 1
+            exempt_value = 'exempt'
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
 
@@ -327,20 +327,20 @@ def generate_syllabus_html(df, base_output_dir):
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
             elif row['Recorded']==2:
                 syllabus_link = f"{row['Code']} (exempted)"
-                exempt_value = 0
+                exempt_value = 'unexempt'
             else: 
                 syllabus_link = row['Code']
 
             url_token = api_auth.generate_token(row['Code'])
             upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}"
-            exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}&exempt={exempt_value}"
+            exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}&action={exempt_value}"
 
             html_content += f"""
                 <tr>
                     <td>{syllabus_link}</td>
                     <td>
                         <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
-                        <button class="icon-btn exempt" title="Exempt" data-url="{exempt_url}"></button>
+                        <button class="icon-btn exempt {exempt_value}" title="Exempt" data-url="{exempt_url}"></button>
                     </td>
                 </tr>
             """
