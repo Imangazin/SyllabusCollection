@@ -10,8 +10,8 @@ department_courses_query = f"""
         SELECT 
             ou.OrgUnitId, ou.Name, ou.Code, ou.IsActive, ou.CreatedDate,
             ou.Year, ou.Term, ou.Duration, ou.Section, ou.Department, 
-            ou.CourseNumber, ou.SectionType,
-            co.Location, co.IsDeleted, co.Recorded,
+            ou.CourseNumber, ou.SectionType, ou.Recorded,
+            co.Location, co.IsDeleted,
             oua.AncestorOrgUnitId AS FacultyId,
             f.ProjectId
         FROM OrganizationalUnits ou
@@ -126,10 +126,12 @@ def setOrganizationalUnits(conn):
     table_columns = list(table_columns_dict.keys())
     datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
     
-    filtered_df = convert_datetime_columns(filtered_df, datetime_columns)
-    filtered_df = filtered_df.astype(object).where(pd.notnull(filtered_df), None)
-
-    write_to_table(conn, 'OrganizationalUnits', filtered_df, table_columns)
+    filtered_df = filtered_df.copy()
+    if not filtered_df.empty:
+        filtered_df.loc[:, 'Recorded'] = 0
+        filtered_df = convert_datetime_columns(filtered_df, datetime_columns)
+        filtered_df = filtered_df.astype(object).where(pd.notnull(filtered_df), None)
+        write_to_table(conn, 'OrganizationalUnits', filtered_df, table_columns)
 
     # Running ContentObjects
     content_objects_df = getContentObjects()
@@ -142,7 +144,6 @@ def setOrganizationalUnits(conn):
 
     filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
     if not filtered_content_objects_df.empty:
-        filtered_content_objects_df.loc[:, 'Recorded'] = 0
         filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, datetime_columns)
         filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
         write_to_table(conn, 'ContentObjects', filtered_content_objects_df, table_columns)
@@ -267,7 +268,7 @@ def update_syllabus_recorded(df, value=1):
     cursor = conn.cursor()
 
     update_query = """
-        UPDATE ContentObjects 
+        UPDATE OrganizationalUnits 
         SET Recorded = %s 
         WHERE OrgUnitId = %s;
     """
@@ -282,7 +283,7 @@ def update_syllabus_recorded(df, value=1):
             conn.commit()
 
     except mysql.connector.Error as err:
-        logger.error(f"Error updating ContentObjects: {err}")
+        logger.error(f"Error updating OrganizationalUnits with Recorded fields value: {err}")
         conn.rollback()
     finally:
         cursor.close()

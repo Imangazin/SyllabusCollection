@@ -13,8 +13,8 @@ syllabus_query = f"""
         SELECT 
             ou.OrgUnitId, ou.Name, ou.Code, ou.IsActive, ou.CreatedDate,
             ou.Year, ou.Term, ou.Duration, ou.Section, ou.Department, 
-            ou.CourseNumber, ou.SectionType,
-            co.Location, co.IsDeleted, co.Recorded,
+            ou.CourseNumber, ou.SectionType, ou.Recorded,
+            co.Location, co.IsDeleted,
             oua.AncestorOrgUnitId AS FacultyId,
             f.ProjectId
         FROM OrganizationalUnits ou
@@ -24,7 +24,7 @@ syllabus_query = f"""
         WHERE ou.Year = %s 
         AND ou.Term = %s 
         AND f.ProjectId IS NOT NULL
-        AND co.Recorded = 0
+        AND ou.Recorded = 0
         AND co.IsDeleted = 0
         AND co.Location IS NOT NULL
         AND co.Location != '';
@@ -33,8 +33,8 @@ all_courses_query = f"""
         SELECT 
             ou.OrgUnitId, ou.Name, ou.Code, ou.IsActive, ou.CreatedDate,
             ou.Year, ou.Term, ou.Duration, ou.Section, ou.Department, 
-            ou.CourseNumber, ou.SectionType,
-            co.Location, co.IsDeleted, co.Recorded,
+            ou.CourseNumber, ou.SectionType, ou.Recorded,
+            co.Location, co.IsDeleted,
             oua.AncestorOrgUnitId AS FacultyId,
             f.ProjectId
         FROM OrganizationalUnits ou

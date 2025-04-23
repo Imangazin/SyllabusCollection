@@ -65,6 +65,7 @@ def upload():
 def exempt():
     course_code = request.args.get('course')
     token = request.args.get('token')
+    exempt_value = request.args.get('exempt')
 
     if not course_code or not token or not api_auth.verify_token(course_code, token):
         logger.error('api/exempt: Invalid or missing signature')
@@ -76,7 +77,10 @@ def exempt():
 
     # Update the DB, mark the course as exempted by changing Recorded field value to 2.
     exempt_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
-    csv_db.update_syllabus_recorded(exempt_df, 2)
+    if exempt_value==0:
+        csv_db.update_syllabus_recorded(exempt_df, 2)
+    else: 
+        csv_db.update_syllabus_recorded(exempt_df, 0)
 
     # Recreate the html file
     department_courses_df = csv_db.get_department_cources(term, year, department)
