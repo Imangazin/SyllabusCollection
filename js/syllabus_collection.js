@@ -65,15 +65,22 @@ $(document).on('click', '.download-report', function (e) {
       ].map(e => e.join(",")).join("\n");
 
       // Create a blob and trigger download
-      const blob = new Blob([csvRows], { type: 'text/csv' });
+      const blob = new Blob([csvRows], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.setAttribute('href', url);
-      a.setAttribute('download', 'report.csv');
+      const urlParams = new URLSearchParams(reportUrl.split('?')[1]);
+      const department = urlParams.get('department');
+      const year = urlParams.get('year');
+      const term = urlParams.get('term');
+      const filename = `Syllabus Report ${department} ${year} ${term}.csv`;
+      a.setAttribute('download', filename);
+      a.style.display = 'none';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     }
   })
   .catch(err => console.error('Download report failed:', err));
 });
-
