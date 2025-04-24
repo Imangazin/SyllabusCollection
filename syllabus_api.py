@@ -41,7 +41,7 @@ def get_access_token():
 
 app = Flask(__name__)
 CORS(app, origins=[origin])
-
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB
 
 @app.route('/api/upload', methods=['POST'])
 def upload():
