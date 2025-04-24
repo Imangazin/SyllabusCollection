@@ -47,18 +47,52 @@ CORS(app, origins=[origin])
 def upload():
     course_code = request.args.get('course')
     token = request.args.get('token')
+    projectId = request.args.get('projectId')
 
-    
     if not course_code or not token or not api_auth.verify_token(course_code, token):
         logger.error('api/upload: Invalid or missing signature')
         abort(403, 'Invalid or missing signature')
 
-    # uploaded_file = request.files.get('file')
-    # if not uploaded_file:
-    #     abort(400, 'No file uploaded')
+    uploaded_file = request.files.get('file')
+    if not uploaded_file:
+        abort(400, 'No file uploaded')
 
-    # # Save the file
-    # uploaded_file.save(f"./uploads/syllabus_{course}.txt")
+    year, term, department = extract_info(course_code)
+    orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
+    
+    # Extract file extension safely
+    original_filename = uploaded_file.filename
+    _, file_extension = os.path.splitext(original_filename)
+
+    # Set the new file name with preserved extension
+    new_filename = f"syllabus_{course_code}{file_extension}"
+
+    # Save the file to the server
+    upload_folder = f"downloads/{department}/{year}/{term}"
+    os.makedirs(upload_folder, exist_ok=True)
+    file_path = os.path.join(upload_folder, new_filename)
+    uploaded_file.save(file_path)
+
+    # Upload it back to BS
+    access_token = get_access_token()
+    row = {
+        'ProjectId': projectId,
+        'Code': course_code,
+        'Location': original_filename,
+        'Department': department,
+        'Year': year,
+        'Term': term
+    }
+    d2l_functions.upload_syllabus(row, None, access_token)
+
+    # generate new html and upload it to BS
+    department_courses_df = csv_db.get_department_cources(term, year, department)
+    d2l_functions.generate_syllabus_html(department_courses_df, 'downloads')
+    d2l_functions.upload_content_html(department_courses_df, year, term, access_token)
+
+
+    logger.info(f"Syllabus uploaded for course {course_code} saved as {new_filename} at {file_path}")
+
     return jsonify({"status": "success", "message": f"File uploaded for {course_code}"}), 200
 
 @app.route('/api/exempt', methods=['POST'])

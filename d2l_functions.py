@@ -299,7 +299,7 @@ def generate_syllabus_html(df, base_output_dir):
         </head>
         <body>
             <h2>Syllabus for {department} - {year} - {term}</h2>
-            <p>Total Courses: {total_courses}, Syllabuses Available: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
+            <p>Total Courses: {total_courses}, Syllabuses Available or Exempted: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
             <table id="{department}-{year}-{term}" class="display">
                 <thead>
                     <tr>
@@ -332,7 +332,7 @@ def generate_syllabus_html(df, base_output_dir):
                 syllabus_link = row['Code']
 
             url_token = api_auth.generate_token(row['Code'])
-            upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}"
+            upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}&projectId={row['ProjectId']}"
             exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}&action={exempt_value}"
 
             html_content += f"""
