@@ -127,6 +127,35 @@ def exempt():
     return jsonify({"status": "success", "message": f"{course_code} has been exempted. OrgUnitID={orgUnitId}"}), 200
 
 
+@app.route('/api/report', methods=['GET'])
+def gerReport():
+    department = request.args.get('department')
+    year = request.args.get('year')
+    term = request.args.get('term')
+    token = request.args.get('token')
+
+    if not department or not year or not term or not token or not api_auth.verify_token(f'{department}-{year}-{term}', token):
+        logger.error('api/exempt: Invalid or missing signature')
+        abort(403, 'Invalid or missing signature')
+
+    department_courses_df = csv_db.get_department_cources(term, year, department)
+    report_data = department_courses_df[['Code', 'Recorded']].copy()
+    
+    def map_recorded_status(value):
+        if value == 1:
+            return "Uploaded"
+        elif value == 2:
+            return "Exempted"
+        else:
+            return ""
+    
+    report_data['Recorded'] = report_data['Recorded'].apply(map_recorded_status)
+    return jsonify(report_data.to_dict(orient='records')), 200
+
+
+
+
+
 def extract_info(string):
     parts = string.split('-')
     year = parts[0]

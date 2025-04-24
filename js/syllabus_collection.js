@@ -50,3 +50,30 @@ $(document).on('click', '.exempt', function () {
     .catch(err => console.error('Exempt error:', err));
 });
 
+$(document).on('click', '.download-report', function (e) {
+  e.preventDefault();
+  const reportUrl = $(this).attr('href');
+
+  fetch(reportUrl)
+  .then(res => res.json())
+  .then(data => {
+    if (data && Array.isArray(data)) {
+      // Convert JSON data to CSV
+      const csvRows = [
+        ['Course Code', 'Syllabus Status'], // header
+        ...data.map(row => [row.Code, row.Recorded])
+      ].map(e => e.join(",")).join("\n");
+
+      // Create a blob and trigger download
+      const blob = new Blob([csvRows], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'report.csv');
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+  })
+  .catch(err => console.error('Download report failed:', err));
+});
+

@@ -300,6 +300,7 @@ def generate_syllabus_html(df, base_output_dir):
         <body>
             <h2>Syllabus for {department} - {year} - {term}</h2>
             <p>Total Courses: {total_courses}, Syllabuses Available or Exempted: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
+            <p><a href="https://cpi.brocku.ca/api/report?department={department}&year={year}&term={term}&token={api_auth.generate_token(f'{department}-{year}-{term}')}">Download Report</a></p>
             <table id="{department}-{year}-{term}" class="display">
                 <thead>
                     <tr>
