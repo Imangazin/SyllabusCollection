@@ -92,6 +92,9 @@ $(document).on('click', '.upload', function () {
     .then(res => res.json())
     .then(data => {
       console.log('Upload result:', data);
+      if (data && data.status === 'success') {
+        location.reload();
+      }
     })
     .catch(err => console.error('Upload failed:', err));
 
