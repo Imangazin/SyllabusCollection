@@ -173,7 +173,7 @@ def upload():
         if (file_key):
             save_file_payload = {"fileKey":file_key,
                                 "relativePath": f"{department}/{year}/{term}"}
-            d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
+            d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{projectId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
         
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.
