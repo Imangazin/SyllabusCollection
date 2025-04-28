@@ -175,6 +175,11 @@ def upload():
                                 "relativePath": f"{department}/{year}/{term}"}
             d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{orgUnitId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
 
+        
+        # Update the DB, mark the course as exempted by changing Recorded field value to 2.
+        upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
+        csv_db.update_syllabus_recorded(upload_df, 1)
+
         #generate new html and upload it to BS
         department_courses_df = csv_db.get_department_cources(term, year, department)
         d2l_functions.generate_syllabus_html(department_courses_df, 'downloads')
@@ -196,7 +201,6 @@ def exempt():
         logger.error('api/exempt: Invalid or missing signature')
         abort(403, 'Invalid or missing signature')
 
-    # Will be creating blank html page
     year, term, department = extract_info(course_code)
     orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
 
