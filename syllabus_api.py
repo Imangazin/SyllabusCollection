@@ -140,6 +140,9 @@ def upload():
 
         year, term, department = extract_info(course_code)
         orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
+        if orgUnitId is None:
+            logger.error(f"orgUnitId not found for course_code: {course_code}")
+            abort(400, f"Course code not found in database: {course_code}")
         
         # Extract file extension safely
         original_filename = uploaded_file.filename
@@ -166,16 +169,6 @@ def upload():
         }
         d2l_functions.upload_syllabus(row, None, access_token)
 
-        # file_key = None
-
-        # upload_url = f"{config['bspace_url']}/d2l/api/lp/1.47/{projectId}/managefiles/file/upload"
-        # file_key = d2l_functions.initiate_resumable_upload(config['bspace_url'], upload_url, access_token, file_path)
-        # if (file_key):
-        #     save_file_payload = {"fileKey":file_key,
-        #                         "relativePath": f"{department}/{year}/{term}"}
-        #     d2l_functions.post_with_auth(f"{config['bspace_url']}/d2l/api/lp/1.47/{projectId}/managefiles/file/save?overwriteFile=true", access_token, data=save_file_payload, json_data=False)
-
-        
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.
         upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
         csv_db.update_syllabus_recorded(upload_df, 1)
