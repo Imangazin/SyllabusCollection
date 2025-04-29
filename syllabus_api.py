@@ -170,7 +170,7 @@ def upload():
         d2l_functions.upload_syllabus(row, None, access_token)
 
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.
-        upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
+        upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId, "Location": new_filename}])
         csv_db.update_syllabus_recorded_and_location(upload_df, 1)
 
         #generate new html and upload it to BS
