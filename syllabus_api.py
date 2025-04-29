@@ -171,7 +171,7 @@ def upload():
 
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.
         upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
-        csv_db.update_syllabus_recorded(upload_df, 1)
+        csv_db.update_syllabus_recorded_and_location(upload_df, 1)
 
         #generate new html and upload it to BS
         department_courses_df = csv_db.get_department_cources(term, year, department)

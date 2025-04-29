@@ -288,6 +288,34 @@ def update_syllabus_recorded(df, value=1):
         cursor.close()
         conn.close()
 
+def update_syllabus_recorded_and_location(df, value=1):
+    batch_size = 1000
+    conn = get_db_connection()
+    cursor = conn.cursor()  
+    update_query = """
+        UPDATE OrganizationalUnits 
+        SET Recorded = %s,
+            Location = %s
+        WHERE OrgUnitId = %s;
+    """
+    # Prepare the data as a list of tuples
+    data = [(int(value), str(row['Location']), int(row['OrgUnitId'])) for _, row in df.iterrows()]
+
+    try:
+        for i in range(0, len(data), batch_size):
+            batch = data[i:i + batch_size]
+            cursor.executemany(update_query, batch)
+            conn.commit()
+
+    except mysql.connector.Error as err:
+        logger.error(f"Error updating OrganizationalUnits with Recorded and Location fields: {err}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
 
 # Function to execute SQL script from file
 def create_main_tables(file_path):
