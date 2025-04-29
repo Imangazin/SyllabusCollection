@@ -170,8 +170,9 @@ def upload():
         d2l_functions.upload_syllabus(row, None, access_token)
 
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.
-        upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId, "Location": new_filename}])
-        csv_db.update_syllabus_recorded_and_location(upload_df, 1)
+        upload_df = pd.DataFrame([{'OrgUnitId': orgUnitId}])
+        csv_db.update_syllabus_recorded(upload_df)
+        csv_db.upsert_content_object(None, orgUnitId, new_filename, "Topic", new_filename, None, 0)
 
         #generate new html and upload it to BS
         department_courses_df = csv_db.get_department_cources(term, year, department)
@@ -241,9 +242,6 @@ def gerReport():
     
     report_data['Recorded'] = report_data['Recorded'].apply(map_recorded_status)
     return jsonify(report_data.to_dict(orient='records')), 200
-
-
-
 
 
 def extract_info(string):

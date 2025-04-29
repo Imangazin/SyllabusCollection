@@ -288,64 +288,40 @@ def update_syllabus_recorded(df, value=1):
         cursor.close()
         conn.close()
 
-def update_syllabus_recorded_and_location(df, value=1):
+
+def upsert_content_object(content_object_id, org_unit_id, title, content_type, location, last_modified, is_deleted):
     conn = get_db_connection()
     cursor = conn.cursor()
-
-    update_ou_query = """
-        UPDATE OrganizationalUnits 
-        SET Recorded = %s
-        WHERE OrgUnitId = %s;
+    query = """
+        INSERT INTO ContentObjects (
+            ContentObjectId, OrgUnitId, Title, ContentObjectType, Location, LastModified, IsDeleted
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE 
+            Title = VALUES(Title),
+            ContentObjectType = VALUES(ContentObjectType),
+            Location = VALUES(Location),
+            LastModified = VALUES(LastModified),
+            IsDeleted = VALUES(IsDeleted);
     """
-
-    update_co_query = """
-        UPDATE ContentObjects
-        SET Location = %s
-        WHERE OrgUnitId = %s;
-    """
-
+    values = (
+        content_object_id,
+        org_unit_id,
+        title,
+        content_type,
+        location,
+        last_modified,
+        is_deleted
+    )
     try:
-        for _, row in df.iterrows():
-            cursor.execute(update_ou_query, (int(value), int(row['OrgUnitId'])))
-            cursor.execute(update_co_query, (str(row['Location']), int(row['OrgUnitId'])))
+        cursor.execute(query, values)
         conn.commit()
-
+        logger.info(f"Upserted ContentObject for OrgUnitId={org_unit_id}")
     except mysql.connector.Error as err:
-        logger.error(f"Error updating OrganizationalUnits and ContentObjects: {err}")
+        logger.error(f"Error upserting ContentObject: {err}")
         conn.rollback()
     finally:
         cursor.close()
-        conn.close()
-
-
-
-
-# Function to execute SQL script from file
-def create_main_tables(file_path):
-    try:
-        # Connect to the database
-        connection = mysql.connector.connect(**db_config)
-        cursor = connection.cursor()
-
-        # Read SQL file
-        with open(file_path, "r", encoding="utf-8") as sql_file:
-            sql_script = sql_file.read()
-
-        # Split SQL statements and execute them one by one
-        for statement in sql_script.split(";"):
-            if statement.strip():  # Ignore empty statements
-                cursor.execute(statement)
-
-        # Commit changes and close connection
-        connection.commit()
-        logger.info("Tables created successfully.")
-    
-    except mysql.connector.Error as err:
-        logger.error(f"Error: {err}")
-
-    finally:
-        cursor.close()
-        connection.close()
+        conn.close()            
 
 
 def get_orgUnitId_by_code(code):
