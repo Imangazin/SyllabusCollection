@@ -282,7 +282,7 @@ def generate_syllabus_html(df, base_output_dir):
         # Define folder structure
         folder_path = os.path.join(base_output_dir, str(department), str(year), str(term))
         os.makedirs(folder_path, exist_ok=True)
-
+        logger.info(f"Debug: folder_path: {folder_path}")
         # Define file path
         file_path = os.path.join(folder_path, f"syllabus_table_{str(department)}_{str(year)}_{str(term)}.html")
 
