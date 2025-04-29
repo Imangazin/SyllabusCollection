@@ -322,6 +322,7 @@ def generate_syllabus_html(df, base_output_dir):
                 if (classify_location(row['Location']) == 'Link'):
                     syllabus_link = f"<a href={row['Location']} target='_blank'>{row['Code']}</a>"
                 else:
+                    logger.info(f"Debug: Location: {row['Location']}-loc")
                     _, file_extension = os.path.splitext(os.path.basename(row['Location']))
                     if (classify_location(row['Location']) == 'd2l'): file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
