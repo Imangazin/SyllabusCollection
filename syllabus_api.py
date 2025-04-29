@@ -175,7 +175,9 @@ def upload():
 
         #generate new html and upload it to BS
         department_courses_df = csv_db.get_department_cources(term, year, department)
+        logger.info('department_courses_df')
         d2l_functions.generate_syllabus_html(department_courses_df, 'downloads')
+        logger.info('d2l_functions.generate_syllabus_html(department_courses_df')
         d2l_functions.upload_content_html(department_courses_df, year, term, access_token)
         logger.info(f"Syllabus uploaded for course {course_code} saved as {new_filename} at {file_path}")
 
