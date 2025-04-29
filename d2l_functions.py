@@ -367,7 +367,7 @@ def generate_syllabus_html(df, base_output_dir):
         </body>
         </html>
         """
-
+        logger.info(f"Debug: Done: Check the file")
         # Write to file
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(html_content)
