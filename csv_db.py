@@ -289,26 +289,29 @@ def update_syllabus_recorded(df, value=1):
         conn.close()
 
 def update_syllabus_recorded_and_location(df, value=1):
-    batch_size = 1000
     conn = get_db_connection()
-    cursor = conn.cursor()  
-    update_query = """
+    cursor = conn.cursor()
+
+    update_ou_query = """
         UPDATE OrganizationalUnits 
-        SET Recorded = %s,
-            Location = %s
+        SET Recorded = %s
         WHERE OrgUnitId = %s;
     """
-    # Prepare the data as a list of tuples
-    data = [(int(value), str(row['Location']), int(row['OrgUnitId'])) for _, row in df.iterrows()]
+
+    update_co_query = """
+        UPDATE ContentObjects
+        SET Location = %s
+        WHERE OrgUnitId = %s;
+    """
 
     try:
-        for i in range(0, len(data), batch_size):
-            batch = data[i:i + batch_size]
-            cursor.executemany(update_query, batch)
-            conn.commit()
+        for _, row in df.iterrows():
+            cursor.execute(update_ou_query, (int(value), int(row['OrgUnitId'])))
+            cursor.execute(update_co_query, (str(row['Location']), int(row['OrgUnitId'])))
+        conn.commit()
 
     except mysql.connector.Error as err:
-        logger.error(f"Error updating OrganizationalUnits with Recorded and Location fields: {err}")
+        logger.error(f"Error updating OrganizationalUnits and ContentObjects: {err}")
         conn.rollback()
     finally:
         cursor.close()
