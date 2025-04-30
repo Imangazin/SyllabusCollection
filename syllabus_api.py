@@ -49,7 +49,7 @@ def get_access_token():
 
 
 app = Flask(__name__)
-CORS(app, origins=[origin])
+CORS(app, resources={r"/api/*": {"origins": origin}}, supports_credentials=True)
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB
 
 # @app.route('/api/upload', methods=['POST'])
@@ -258,6 +258,14 @@ def extract_info(string):
     term = parts[1]
     code = parts[4]
     return year, term, code
+
+
+# Add CORS headers for all responses
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 
 
