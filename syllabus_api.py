@@ -175,6 +175,7 @@ def upload():
             'Year': year,
             'Term': term
         }
+        logger.info(f"Received file: {file_path.filename}, type: {file_path.mimetype}")
         d2l_functions.upload_syllabus(row, None, access_token)
 
         # Update the DB, mark the course as exempted by changing Recorded field value to 2.

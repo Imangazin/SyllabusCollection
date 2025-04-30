@@ -140,7 +140,7 @@ def initiate_resumable_upload(base, upload_url, access_token, file_path, chunk_s
 
     # Auto-detect MIME type
     mime_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
-
+    logger.info(f"Received file type: {mimetypes.guess_type(file_path)[0]}")
     # Extract file name
     file_name = os.path.basename(file_path)
 
