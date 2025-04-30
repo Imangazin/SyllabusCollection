@@ -30,12 +30,20 @@ def get_access_token():
     config = get_config()
     buffer_seconds = 300
     expires_in = 7200
+
     if (config["access_token"] is None or (now - float(config["timestamp"])) >= (expires_in - buffer_seconds)):
         authorize_to_d2l = d2l_functions.trade_in_refresh_token(config)
+        if not authorize_to_d2l:
+            logger.error("Failed to refresh token.")
+            abort(500, "Internal server error: token refresh failed.")
+
         access_token = authorize_to_d2l['access_token']
         refresh_token = authorize_to_d2l['refresh_token']
         d2l_functions.set_refresh_token(refresh_token, access_token, str(now))
+
+        dotenv.load_dotenv(dotenv_file, override=True)
         return access_token
+
     return config["access_token"]
 
 
