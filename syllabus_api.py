@@ -15,6 +15,7 @@ dotenv.load_dotenv(dotenv_file)
 origin = os.environ["bspace_url"]
 
 def get_config():
+    dotenv.load_dotenv(dotenv_file, override=True)
     return {
         "bspace_url": os.environ["bspace_url"],
         "client_id": os.environ["client_id"],

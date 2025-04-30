@@ -1,3 +1,6 @@
+let activeRequests = 0;
+let pendingFileDialogs = 0;
+
 async function getToken() {
   const res = await fetch('/d2l/lp/auth/xsrf-tokens', {
     method: 'GET'
@@ -22,7 +25,10 @@ function parseCourseCode(courseCode) {
 
 
 $(document).on('click', '.exempt', function () {
-    const exemptUrl = $(this).data('url');
+  const $exemptBtn = $(this);
+  $exemptBtn.addClass('loading');
+  const exemptUrl = $(this).data('url');
+  activeRequests++;
 
     fetch(exemptUrl, {
       method: 'POST',
@@ -30,11 +36,19 @@ $(document).on('click', '.exempt', function () {
     .then(res => res.json())
     .then(data => {
       console.log(data);
+      $exemptBtn.removeClass('loading');
       if (data && data.status === 'success') {
-        location.reload();
+        activeRequests--;
+        if (activeRequests === 0 && pendingFileDialogs === 0) {
+          location.reload();
+        }
       }
     })
-    .catch(err => console.error('Exempt error:', err));
+    .catch(err => {
+      console.error('Exempt error:', err);
+      $exemptBtn.removeClass('loading');
+      activeRequests--;
+    });
 });
 
 $(document).on('click', '.download-report', function (e) {
@@ -73,14 +87,24 @@ $(document).on('click', '.download-report', function (e) {
 });
 
 $(document).on('click', '.upload', function () {
+  const $uploadBtn = $(this);
+  $uploadBtn.addClass('loading');
   const uploadUrl = $(this).data('url');
 
   const fileInput = $('<input type="file" style="display: none;" />');
   $('body').append(fileInput);
+  pendingFileDialogs++;
 
   fileInput.on('change', function () {
+    pendingFileDialogs--;
+
     const file = this.files[0];
-    if (!file) return;
+    if (!file) {
+      $uploadBtn.removeClass('loading');
+      return;
+    }
+    
+    activeRequests++;
 
     const formData = new FormData();
     formData.append('file', file);
@@ -92,11 +116,19 @@ $(document).on('click', '.upload', function () {
     .then(res => res.json())
     .then(data => {
       console.log('Upload result:', data);
+      $uploadBtn.removeClass('loading');
       if (data && data.status === 'success') {
-        location.reload();
+        activeRequests--;
+        if (activeRequests === 0 && pendingFileDialogs === 0) {
+          location.reload();
+        }
       }
     })
-    .catch(err => console.error('Upload failed:', err));
+    .catch(err => {
+      console.error('Upload failed:', err);
+      $uploadBtn.removeClass('loading');
+      activeRequests--;
+    });
 
     fileInput.remove();
   });
@@ -203,4 +235,3 @@ $(document).on('click', '.upload', function () {
 
 //   return await response.json();
 // }
-
