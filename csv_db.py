@@ -373,26 +373,35 @@ def get_department_cources(term, year, department):
         conn.close()
 
 
-def update_ancestor_orgunit_id_for_btgd(conn):
-    """
-    Update the AncestorOrgUnitId field to ****** in the OrganizationalUnitAncestors table
-    for all OrgUnitIds where the Department in OrganizationalUnits is 'BTGD'.
-    """
+def update_btgd_ancestor_orgunit(conn):
     cursor = conn.cursor()
     try:
-        update_query = """
-            UPDATE OrganizationalUnitAncestors
-            SET AncestorOrgUnitId = 6937
-            WHERE OrgUnitId IN (
-                SELECT OrgUnitId FROM OrganizationalUnits WHERE Department = 'BTGD'
-            );
-        """
-        cursor.execute(update_query)
+        # Get OrgUnitIds for BTGD department
+        select_query = "SELECT OrgUnitId FROM OrganizationalUnits WHERE Department = 'BTGD';"
+        cursor.execute(select_query)
+        orgunit_ids = cursor.fetchall()
+
+        for (orgunit_id,) in orgunit_ids:
+            # Remove any existing record that would conflict
+            delete_query = """
+                DELETE FROM OrganizationalUnitAncestors
+                WHERE OrgUnitId = %s AND AncestorOrgUnitId = 6937;
+            """
+            cursor.execute(delete_query, (orgunit_id,))
+
+            # Insert the new mapping
+            insert_query = """
+                INSERT INTO OrganizationalUnitAncestors (OrgUnitId, AncestorOrgUnitId)
+                VALUES (%s, 6937);
+            """
+            cursor.execute(insert_query, (orgunit_id,))
+
         conn.commit()
-        logger.info("Updated AncestorOrgUnitId to 6937 for BTGD department.")
+        logger.info("BTGD ancestor OrgUnit updates applied successfully.")
     except mysql.connector.Error as err:
-        logger.error(f"Error updating AncestorOrgUnitId for BTGD department: {err}")
-        conn.rollback()
+        logger.error(f"Database error: {err}")
+        if conn:
+            conn.rollback()
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
