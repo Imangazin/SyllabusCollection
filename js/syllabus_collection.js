@@ -1,29 +1,7 @@
 let activeRequests = 0;
 let pendingFileDialogs = 0;
 
-async function getToken() {
-  const res = await fetch('/d2l/lp/auth/xsrf-tokens', {
-    method: 'GET'
-  });
-  const data = await res.json();
-  return data.referrerToken;
-}
-
-
-function parseCourseCode(courseCode) {
-  const parts = courseCode.split('-');
-  if (parts.length < 5) {
-    throw new Error('Invalid course code format');
-  }
-
-  const year = parts[0];
-  const term = parts[1];
-  const department = parts[4];
-
-  return { year, term, department };
-}
-
-
+//exempt syllabus
 $(document).on('click', '.exempt', function () {
   const $exemptBtn = $(this);
   $exemptBtn.addClass('loading');
@@ -51,6 +29,8 @@ $(document).on('click', '.exempt', function () {
     });
 });
 
+
+//download report
 $(document).on('click', '.download-report', function (e) {
   e.preventDefault();
   const reportUrl = $(this).attr('href');
@@ -86,6 +66,7 @@ $(document).on('click', '.download-report', function (e) {
   .catch(err => console.error('Download report failed:', err));
 });
 
+//upload syllabus
 $(document).on('click', '.upload', function () {
   const $uploadBtn = $(this);
   $uploadBtn.addClass('loading');
@@ -93,21 +74,31 @@ $(document).on('click', '.upload', function () {
 
   const fileInput = $('<input type="file" style="display: none;" />');
   $('body').append(fileInput);
+
   pendingFileDialogs++;
 
   fileInput.on('change', function () {
-    pendingFileDialogs--;
 
     const file = this.files[0];
     if (!file) {
+      pendingFileDialogs--;
       $uploadBtn.removeClass('loading');
+      fileInput.remove();
       return;
     }
+
+    pendingFileDialogs--;
     
     activeRequests++;
 
     const formData = new FormData();
     formData.append('file', file);
+
+    // Debug logging before upload
+    console.log('Attempting upload to:', uploadUrl);
+    console.log('File:', file);
+    console.log('File name:', file.name);
+    console.log('File size (bytes):', file.size);
 
     fetch(uploadUrl, {
       method: 'POST',
@@ -115,7 +106,6 @@ $(document).on('click', '.upload', function () {
     })
     .then(res => res.json())
     .then(data => {
-      console.log('Upload result:', data);
       $uploadBtn.removeClass('loading');
       if (data && data.status === 'success') {
         activeRequests--;
@@ -132,106 +122,5 @@ $(document).on('click', '.upload', function () {
 
     fileInput.remove();
   });
-
   fileInput.click();
 });
-
-
-// $(document).on('click', '.upload', async function () {
-//   const uploadUrl = $(this).data('url');
-//   const urlParams = new URLSearchParams(uploadUrl.split('?')[1]);
-//   const courseCode = urlParams.get('course');
-//   const orgUnitId = urlParams.get('projectId');
-//   const {year, term, department} = parseCourseCode(courseCode);
-//   let uploadPath, fileKey;
-
-//   const fileInput = $('<input type="file" style="display: none;" />');
-//   $('body').append(fileInput);
-
-//   fileInput.on('change', async function () {
-//     const file = this.files[0];
-//     if (!file) return;
-
-//     try {
-//       const xsrfToken = await getToken();
-//       const newFileName = `syllabus_${courseCode}${file.name.substring(file.name.lastIndexOf('.'))}`;
-
-//       // Step 1: Initiate Resumable Upload. Send it to server since browser can not handle 308
-//       const response = await fetch(uploadUrl, {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json'
-//         },
-//         body: JSON.stringify({
-//           fileType: file.type,
-//           fileSize: file.size,
-//           fileName: newFileName
-//         })
-//       });
-      
-//       const data = await response.json();
-//       console.log(data);
-//       if (data && data.status === 'success') {
-//         fileKey = data.fileKey;
-//         uploadPath = data.uploadUrl;
-//       } else {
-//         throw new Error('Failed to initiate upload.');
-//       }
-//       // Step 2: Upload File Chunk
-//       await uploadFileChunk(uploadPath, file, xsrfToken);
-
-//       // Step 3: Save File
-//       const savedFile = await saveUploadedFile(orgUnitId, fileKey, newFileName, department, year, term, xsrfToken);
-
-
-
-//     } catch (err) {
-//       console.error('Upload failed:', err);
-//     }
-
-//     fileInput.remove();
-//   });
-
-//   fileInput.click();
-// });
-
-
-// async function uploadFileChunk(uploadPath, file, xsrfToken) {
-//   console.log(`upload path: ${uploadPath}`);
-//   const response = await fetch(uploadPath, {
-//     method: 'POST',
-//     headers: {
-//       'X-Csrf-Token': xsrfToken,
-//       'Content-Range': `bytes 0-${file.size - 1}/${file.size}`
-//     },
-//     credentials: 'include',
-//     body: file
-//   });
-
-//   if (!response.ok) {
-//     throw new Error(`Chunk upload failed: ${response.status}`);
-//   }
-// }
-
-// async function saveUploadedFile(orgUnitId, fileKey, newFileName, department, year, term, xsrfToken) {
-//   const apiVersion = '1.47';
-//   const relativePath = `${department}/${year}/${term}`;
-//   const saveUrl = `/d2l/api/lp/${apiVersion}/${orgUnitId}/managefiles/file/save?overwriteFile=true`;
-
-//   const response = await fetch(saveUrl, {
-//     method: 'POST',
-//     headers: {
-//       'X-Csrf-Token': xsrfToken
-//     },
-//     credentials: 'include',
-//     body: new URLSearchParams({
-//       relativePath: relativePath,
-//       fileKey: fileKey
-//     })
-//   });
-//   if (!response.ok) {
-//     throw new Error(`Save failed: ${response.status}`);
-//   }
-
-//   return await response.json();
-// }
