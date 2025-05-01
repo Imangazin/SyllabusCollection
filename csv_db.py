@@ -27,6 +27,8 @@ department_courses_query = f"""
 file_path = 'datahub/'
 os.makedirs(file_path, exist_ok=True)
 
+BTGD = os.environ["BTGD-Faculty"]
+
 def get_db_config():
     return {
         "host": os.environ["host"],
@@ -377,14 +379,14 @@ def update_btgd_ancestor_orgunit(conn):
     cursor = conn.cursor()
     try:
         # Get OrgUnitIds for BTGD department that are not already mapped to AncestorOrgUnitId = 6937
-        select_query = """
+        select_query = f"""
             SELECT ou.OrgUnitId 
             FROM OrganizationalUnits ou
             WHERE ou.Department = 'BTGD'
             AND ou.OrgUnitId NOT IN (
                 SELECT OrgUnitId 
                 FROM OrganizationalUnitAncestors 
-                WHERE AncestorOrgUnitId = 6937
+                WHERE AncestorOrgUnitId = {BTGD}
             );
         """
         cursor.execute(select_query)
@@ -403,9 +405,9 @@ def update_btgd_ancestor_orgunit(conn):
             # Insert the new mapping
             insert_query = """
                 INSERT INTO OrganizationalUnitAncestors (OrgUnitId, AncestorOrgUnitId)
-                VALUES (%s, 6937);
+                VALUES (%s, %s);
             """
-            cursor.execute(insert_query, (orgunit_id,))
+            cursor.execute(insert_query, (orgunit_id,BTGD))
 
         conn.commit()
         logger.info("BTGD ancestor OrgUnit updates applied successfully.")

@@ -330,8 +330,10 @@ term_year = get_academic_term(today)
 
 logger.info('Current term identified.')
 for each in term_year:
-    year = each['year']
-    term = each['term']
+    # year = each['year']
+    # term = each['term']
+    year = 2024
+    term = 'FW'
 
     #create folders in the Brightspace
     logger.info(f'Request for all course data initiated for given term: {term} and year: {year}.')
