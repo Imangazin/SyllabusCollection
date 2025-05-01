@@ -50,7 +50,8 @@ def get_access_token():
 
 
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+CORS(app, resources={r"/api/*": {"origins": origin}})
+logger.info(f"Origin: {origin}")
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB
 
 
@@ -184,18 +185,6 @@ def extract_info(string):
     term = parts[1]
     code = parts[4]
     return year, term, code
-
-
-
-# Add CORS headers for all responses
-@app.after_request
-def after_request(response):
-    response.headers['Access-Control-Allow-Origin'] = 'https://brocktest.brightspace.com'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    return response
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
