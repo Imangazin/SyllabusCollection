@@ -27,7 +27,7 @@ department_courses_query = f"""
 file_path = 'datahub/'
 os.makedirs(file_path, exist_ok=True)
 
-BTGD = os.environ["BTGD-Faculty"]
+BTGD = int(os.environ["BTGD-Faculty"])
 
 def get_db_config():
     return {

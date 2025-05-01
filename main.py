@@ -71,6 +71,7 @@ def get_config(mode):
     }
 
 def get_academic_term(current_date):
+    return ([{'term': 'FW', 'year':2024, 'identifier':'FW'}])
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
@@ -330,10 +331,8 @@ term_year = get_academic_term(today)
 
 logger.info('Current term identified.')
 for each in term_year:
-    # year = each['year']
-    # term = each['term']
-    year = 2024
-    term = 'FW'
+    year = each['year']
+    term = each['term']
 
     #create folders in the Brightspace
     logger.info(f'Request for all course data initiated for given term: {term} and year: {year}.')
