@@ -376,19 +376,30 @@ def get_department_cources(term, year, department):
 def update_btgd_ancestor_orgunit(conn):
     cursor = conn.cursor()
     try:
-        # Get OrgUnitIds for BTGD department
-        select_query = "SELECT OrgUnitId FROM OrganizationalUnits WHERE Department = 'BTGD';"
+        # Get OrgUnitIds for BTGD department that are not already mapped to AncestorOrgUnitId = 6937
+        select_query = """
+            SELECT ou.OrgUnitId 
+            FROM OrganizationalUnits ou
+            WHERE ou.Department = 'BTGD'
+            AND ou.OrgUnitId NOT IN (
+                SELECT OrgUnitId 
+                FROM OrganizationalUnitAncestors 
+                WHERE AncestorOrgUnitId = 6937
+            );
+        """
         cursor.execute(select_query)
         orgunit_ids = cursor.fetchall()
+        
+        # Remove any existing record that would conflict
+        delete_query = """
+            DELETE FROM OrganizationalUnitAncestors
+            WHERE OrgUnitId IN (
+                SELECT OrgUnitId FROM OrganizationalUnits WHERE Department = 'BTGD'
+            );
+        """ 
+        cursor.execute(delete_query)
 
         for (orgunit_id,) in orgunit_ids:
-            # Remove any existing record that would conflict
-            delete_query = """
-                DELETE FROM OrganizationalUnitAncestors
-                WHERE OrgUnitId = %s AND AncestorOrgUnitId = 6937;
-            """
-            cursor.execute(delete_query, (orgunit_id,))
-
             # Insert the new mapping
             insert_query = """
                 INSERT INTO OrganizationalUnitAncestors (OrgUnitId, AncestorOrgUnitId)
