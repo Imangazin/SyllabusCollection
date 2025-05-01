@@ -203,7 +203,7 @@ def setDb():
     setAncestors(conn)
     logger.info('OrganizationalUnitAncestors table updated successfully.')
 
-    #supdate_btgd_ancestor_orgunit(conn)
+    update_btgd_ancestor_orgunit(conn)
 
     conn.close()
 
