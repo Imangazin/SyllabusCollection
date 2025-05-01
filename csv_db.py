@@ -201,6 +201,8 @@ def setDb():
     setAncestors(conn)
     logger.info('OrganizationalUnitAncestors table updated successfully.')
 
+    update_ancestor_orgunit_id_for_btgd(conn)
+
     conn.close()
 
 
@@ -366,6 +368,31 @@ def get_department_cources(term, year, department):
         logger.error(f"Error executing syllabus query: {err}")
         return pd.DataFrame()  # Return an empty DataFrame instead of None
 
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_ancestor_orgunit_id_for_btgd(conn):
+    """
+    Update the AncestorOrgUnitId field to ****** in the OrganizationalUnitAncestors table
+    for all OrgUnitIds where the Department in OrganizationalUnits is 'BTGD'.
+    """
+    cursor = conn.cursor()
+    try:
+        update_query = """
+            UPDATE OrganizationalUnitAncestors
+            SET AncestorOrgUnitId = 6937
+            WHERE OrgUnitId IN (
+                SELECT OrgUnitId FROM OrganizationalUnits WHERE Department = 'BTGD'
+            );
+        """
+        cursor.execute(update_query)
+        conn.commit()
+        logger.info("Updated AncestorOrgUnitId to 6937 for BTGD department.")
+    except mysql.connector.Error as err:
+        logger.error(f"Error updating AncestorOrgUnitId for BTGD department: {err}")
+        conn.rollback()
     finally:
         cursor.close()
         conn.close()
