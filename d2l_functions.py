@@ -142,7 +142,6 @@ def initiate_resumable_upload(base, upload_url, access_token, file_path, chunk_s
     #mime_type = mimetypes.guess_type(file_path)[0] or "application/octet-stream"
     # Using generic mime type
     mime_type = "application/octet-stream"
-    logger.info(f"Received file type: {mimetypes.guess_type(file_path)[0]}")
     # Extract file name
     file_name = os.path.basename(file_path)
 
@@ -284,7 +283,7 @@ def generate_syllabus_html(df, base_output_dir):
         # Define folder structure
         folder_path = os.path.join(base_output_dir, str(department), str(year), str(term))
         os.makedirs(folder_path, exist_ok=True)
-        logger.info(f"Debug: folder_path: {folder_path}")
+
         # Define file path
         file_path = os.path.join(folder_path, f"syllabus_table_{str(department)}_{str(year)}_{str(term)}.html")
 
@@ -321,12 +320,14 @@ def generate_syllabus_html(df, base_output_dir):
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
 
             if row['Recorded']==1:
-                if (classify_location(row['Location']) == 'Link'):
+                if pd.isna(row['Location']):
+                    syllabus_link = row['Code']
+                elif classify_location(row['Location']) == 'Link':
                     syllabus_link = f"<a href={row['Location']} target='_blank'>{row['Code']}</a>"
                 else:
-                    logger.info(f"Debug: Location: {row['Location']}-loc")
-                    _, file_extension = os.path.splitext(os.path.basename(row['Location']))
-                    if (classify_location(row['Location']) == 'd2l'): file_extension = '.html'
+                    _, file_extension = os.path.splitext(os.path.basename(str(row['Location'])))
+                    if classify_location(row['Location']) == 'd2l':
+                        file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
             elif row['Recorded']==2:
@@ -370,7 +371,6 @@ def generate_syllabus_html(df, base_output_dir):
         </body>
         </html>
         """
-        logger.info(f"Debug: Done: Check the file")
         # Write to file
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(html_content)

@@ -13,7 +13,6 @@ $(document).on('click', '.exempt', function () {
     })
     .then(res => res.json())
     .then(data => {
-      console.log(data);
       $exemptBtn.removeClass('loading');
       if (data && data.status === 'success') {
         activeRequests--;
@@ -66,18 +65,33 @@ $(document).on('click', '.download-report', function (e) {
   .catch(err => console.error('Download report failed:', err));
 });
 
-//upload syllabus
+
 $(document).on('click', '.upload', function () {
   const $uploadBtn = $(this);
   $uploadBtn.addClass('loading');
-  const uploadUrl = $(this).data('url');
+  const uploadUrl = $uploadBtn.data('url');
 
   const fileInput = $('<input type="file" style="display: none;" />');
   $('body').append(fileInput);
 
   pendingFileDialogs++;
 
+  // Set fallback timeout
+  const timeoutId = setTimeout(() => {
+    pendingFileDialogs = Math.max(0, pendingFileDialogs - 1);
+
+    if (activeRequests === 0 && $uploadBtn.hasClass('loading')) {
+      $uploadBtn.removeClass('loading');
+    }
+
+    if (activeRequests === 0 && pendingFileDialogs === 0) {
+      location.reload();
+    }
+  }, 60000);
+  $uploadBtn.data('timeout-id', timeoutId);
+
   fileInput.on('change', function () {
+    clearTimeout($uploadBtn.data('timeout-id'));
 
     const file = this.files[0];
     if (!file) {
@@ -88,17 +102,10 @@ $(document).on('click', '.upload', function () {
     }
 
     pendingFileDialogs--;
-    
     activeRequests++;
 
     const formData = new FormData();
     formData.append('file', file);
-
-    // Debug logging before upload
-    console.log('Attempting upload to:', uploadUrl);
-    console.log('File:', file);
-    console.log('File name:', file.name);
-    console.log('File size (bytes):', file.size);
 
     fetch(uploadUrl, {
       method: 'POST',
@@ -107,8 +114,8 @@ $(document).on('click', '.upload', function () {
     .then(res => res.json())
     .then(data => {
       $uploadBtn.removeClass('loading');
+      activeRequests--;
       if (data && data.status === 'success') {
-        activeRequests--;
         if (activeRequests === 0 && pendingFileDialogs === 0) {
           location.reload();
         }
@@ -122,5 +129,68 @@ $(document).on('click', '.upload', function () {
 
     fileInput.remove();
   });
+
   fileInput.click();
 });
+
+//upload syllabus
+// $(document).on('click', '.upload', function () {
+//   const $uploadBtn = $(this);
+//   $uploadBtn.addClass('loading');
+//   const uploadUrl = $(this).data('url');
+
+//   const fileInput = $('<input type="file" style="display: none;" />');
+//   $('body').append(fileInput);
+
+//   pendingFileDialogs++;
+
+//   fileInput.on('change', function () {
+
+//     const file = this.files[0];
+//     if (!file) {
+//       pendingFileDialogs--;
+//       $uploadBtn.removeClass('loading');
+//       fileInput.remove();
+//       return;
+//     }
+
+//     pendingFileDialogs--;
+    
+//     activeRequests++;
+
+//     const formData = new FormData();
+//     formData.append('file', file);
+
+//     fetch(uploadUrl, {
+//       method: 'POST',
+//       body: formData
+//     })
+//     .then(res => res.json())
+//     .then(data => {
+//       $uploadBtn.removeClass('loading');
+//       if (data && data.status === 'success') {
+//         activeRequests--;
+//         if (activeRequests === 0 && pendingFileDialogs === 0) {
+//           location.reload();
+//         }
+//       }
+//     })
+//     .catch(err => {
+//       console.error('Upload failed:', err);
+//       $uploadBtn.removeClass('loading');
+//       activeRequests--;
+//     });
+
+//     fileInput.remove();
+//   });
+//   fileInput.click();
+
+
+//   // Fallback in case user cancels the file dialog
+//   setTimeout(() => {
+//     pendingFileDialogs--;
+//     if ((activeRequests === 0 && pendingFileDialogs === 0)) {
+//       $uploadBtn.removeClass('loading');
+//     }
+//   }, 60000);
+// });
