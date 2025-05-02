@@ -1,2 +1,5 @@
 .env
 .venv
+datahub
+downloads
+.DS_Store

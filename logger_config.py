@@ -3,7 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 # Define the log file path
-log_file = '/opt/SyllabusCollection/datahub/application.log'
+log_file = 'datahub/application.log'
 
 # Ensure that the directory for the log file exists
 log_dir = os.path.dirname(log_file)
