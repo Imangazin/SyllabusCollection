@@ -171,6 +171,9 @@ def initiate_resumable_upload(base, upload_url, access_token, file_path, chunk_s
                     "Content-Range": f"bytes {start_byte}-{end_byte}/{file_size}"
                 }
                 upload_url = response.headers["Location"]
+                if not upload_url:
+                    logger.error("Upload URL not found in headers.")
+                    return None
                 file_key = os.path.basename(upload_url)
                 response = requests.post(f"{base}{upload_url}", headers=headers, data=chunk, allow_redirects=False)
                 if response.status_code == 308:  # Resume Incomplete
@@ -224,7 +227,7 @@ def upload_syllabus(row, filetype, access_token):
     try:
         # Construct the URL with the row's Location value
         orgUnitId = row['ProjectId']
-        location = row['Location']
+        location = str(row['Location']) if pd.notna(row['Location']) else ""
         department = str(row['Department'])
         year = str(row['Year'])
         term = str(row['Term'])
@@ -314,7 +317,9 @@ def generate_syllabus_html(df, base_output_dir):
 
         # Add table rows
         for _, row in group.iterrows():
-
+            if pd.isna(row['Code']):
+                logger.warning("Missing course Code; skipping row.")
+                continue
             exempt_value = 'exempt'
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])

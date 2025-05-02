@@ -71,7 +71,7 @@ def get_config(mode):
     }
 
 def get_academic_term(current_date):
-    return ([{'term': 'FW', 'year':2024, 'identifier':'FW'}])
+    #return ([{'term': 'FW', 'year':2024, 'identifier':'FW'}])
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
@@ -309,6 +309,11 @@ now = time.time()
 authorize_to_d2l = d2l_functions.trade_in_refresh_token(config)
 access_token = authorize_to_d2l['access_token']
 refresh_token = authorize_to_d2l['refresh_token']
+
+if not access_token or not refresh_token:
+    logger.error('Missing access or refresh token.')
+    sys.exit(1)
+
 d2l_functions.set_refresh_token(refresh_token, access_token, str(now))
 logger.info('Tokens are set.')
 

@@ -66,6 +66,7 @@ def split_code(code):
     components = str(code).split('-')  # Convert to string and split by '-'
     if len(components) == 7:  # Only process if there are exactly 7 components
         return components
+    logger.warning(f"Unexpected code format: {code}")
     return [None] * 7  # Placeholder if the format doesn't match
 
 # Convert datetime columns to MySQL-friendly format
@@ -276,6 +277,10 @@ def update_syllabus_recorded(df, value=1):
         SET Recorded = %s 
         WHERE OrgUnitId = %s;
     """
+    
+    if df.empty:
+        logger.info("No rows to update in OrganizationalUnits.")
+        return
     
     # Prepare the data as a list of tuples
     data = [(int(value), int(row['OrgUnitId'])) for _, row in df.iterrows()]

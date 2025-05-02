@@ -80,6 +80,8 @@ def upload():
         
         # Extract file extension safely
         original_filename = uploaded_file.filename
+        if not original_filename:
+            abort(400, 'Uploaded file has no filename')
         _, file_extension = os.path.splitext(original_filename)
 
         # Set the new file name with preserved extension
@@ -154,7 +156,7 @@ def exempt():
 
 
 @app.route('/api/report', methods=['GET'])
-def gerReport():
+def getReport():
     department = request.args.get('department')
     year = request.args.get('year')
     term = request.args.get('term')
@@ -181,6 +183,8 @@ def gerReport():
 
 def extract_info(string):
     parts = string.split('-')
+    if len(parts) < 5:
+        raise ValueError(f"Invalid course code format: {string}")
     year = parts[0]
     term = parts[1]
     code = parts[4]
