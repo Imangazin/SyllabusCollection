@@ -178,6 +178,8 @@ def setContentObjects():
     ]
     table_columns_dict = get_table_columns(cursor, 'ContentObjects')
     table_columns = list(table_columns_dict.keys())
+    if 'Recorded' in table_columns:
+        table_columns.remove('Recorded')
     print(table_columns)
     datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
 
