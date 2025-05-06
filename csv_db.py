@@ -136,34 +136,16 @@ def setOrganizationalUnits(conn):
         filtered_df = filtered_df.astype(object).where(pd.notnull(filtered_df), None)
         write_to_table(conn, 'OrganizationalUnits', filtered_df, table_columns)
 
-    # Running ContentObjects
-    content_objects_df = getContentObjects()
-    filtered_content_objects_df = content_objects_df[
-        content_objects_df["OrgUnitId"].isin(filtered_df["OrgUnitId"])
-    ]
-    content_table_columns_dict = get_table_columns(cursor, 'ContentObjects')
-    content_table_columns = list(content_table_columns_dict.keys())
-    content_datetime_columns = [col for col, dtype in content_table_columns_dict.items() if dtype in ("datetime", "timestamp")]
-
-
-    print("Org columns:", table_columns_dict.keys())
-    print("Content columns:", content_table_columns_dict.keys())
-
-
-    filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
-    if not filtered_content_objects_df.empty:
-        filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, content_datetime_columns)
-        filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
-        write_to_table(conn, 'ContentObjects', filtered_content_objects_df, content_table_columns)
 
     cursor.close()
 
 
-def getContentObjects():
+def setContentObjects(conn):
+    cursor = conn.cursor()
 
     content_objects_df = readCSV(f'{file_path}/ContentObjects.csv')
 
-    # Select only the needed columns from OrganizationalUnits.csv
+    # Select only the needed columns from ContentObject.csv
     content_objects_filtered = content_objects_df[[
         'ContentObjectId', 'OrgUnitId', 'Title', 'ContentObjectType', 'Location', 'LastModified', 'IsDeleted'
     ]]
@@ -182,7 +164,26 @@ def getContentObjects():
         filtered_content_objects.groupby('OrgUnitId')['LastModified'].idxmax()
     ].reset_index(drop=True)
 
-    return filtered_df
+    # Running ContentObjects
+
+    query_orgunits = "SELECT OrgUnitId FROM OrganizationalUnits;"
+    cursor.execute(query_orgunits)
+    results = cursor.fetchall()
+    orgunit_df = pd.DataFrame(results, columns=['OrgUnitId'])
+
+
+    filtered_content_objects_df = filtered_df[
+        filtered_df["OrgUnitId"].isin(orgunit_df["OrgUnitId"])
+    ]
+    table_columns_dict = get_table_columns(cursor, 'ContentObjects')
+    table_columns = list(table_columns_dict.keys())
+    datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
+
+    filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
+    if not filtered_content_objects_df.empty:
+        filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, datetime_columns)
+        filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
+        write_to_table(conn, 'ContentObjects', filtered_content_objects_df, table_columns)
 
 
 
@@ -201,9 +202,13 @@ def setAncestors(conn):
 def setDb():
     conn = get_db_connection()
 
-    logger.info('Running OrganizationalUnits and Content Objects...')
+    logger.info('Running OrganizationalUnits...')
     setOrganizationalUnits(conn)
-    logger.info('OrganizationalUnits and ContentObject tables updated successfully.')
+    logger.info('OrganizationalUnits tables updated successfully.')
+
+    logger.info('Running ContentObjects...')
+    setContentObjects(conn)
+    logger.info('ContentObjects table updated successfully.')
 
     logger.info('Running OrganizationalUnitAncestors...')
     setAncestors(conn)
