@@ -96,8 +96,8 @@ def get_table_columns(cursor, table_name):
     return {row[0]: row[1] for row in cursor.fetchall()}
 
 
-def setOrganizationalUnits(conn):
-
+def setOrganizationalUnits():
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     organizational_units_df = readCSV(f'{file_path}/OrganizationalUnits.csv')
@@ -136,11 +136,12 @@ def setOrganizationalUnits(conn):
         filtered_df = filtered_df.astype(object).where(pd.notnull(filtered_df), None)
         write_to_table(conn, 'OrganizationalUnits', filtered_df, table_columns)
 
-
     cursor.close()
+    conn.close()
 
 
-def setContentObjects(conn):
+def setContentObjects():
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     content_objects_df = readCSV(f'{file_path}/ContentObjects.csv')
@@ -184,11 +185,14 @@ def setContentObjects(conn):
         filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, datetime_columns)
         filtered_content_objects_df = filtered_content_objects_df.astype(object).where(pd.notnull(filtered_content_objects_df), None)
         write_to_table(conn, 'ContentObjects', filtered_content_objects_df, table_columns)
-
-
-
-def setAncestors(conn):
     
+    cursor.close()
+    conn.close()
+
+
+
+def setAncestors():
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     ancestors_df = readCSV(f'{file_path}/OrganizationalUnitAncestors.csv')
@@ -197,26 +201,25 @@ def setAncestors(conn):
     
     write_to_table(conn, 'OrganizationalUnitAncestors', ancestors_df, ancestors_table_columns)
     cursor.close()
+    conn.close()
 
 # Sets the temporarly tables and writes daily data to them
 def setDb():
-    conn = get_db_connection()
 
     logger.info('Running OrganizationalUnits...')
-    setOrganizationalUnits(conn)
+    setOrganizationalUnits()
     logger.info('OrganizationalUnits tables updated successfully.')
 
     logger.info('Running ContentObjects...')
-    setContentObjects(conn)
+    setContentObjects()
     logger.info('ContentObjects table updated successfully.')
 
     logger.info('Running OrganizationalUnitAncestors...')
-    setAncestors(conn)
+    setAncestors()
     logger.info('OrganizationalUnitAncestors table updated successfully.')
 
-    update_btgd_ancestor_orgunit(conn)
+    update_btgd_ancestor_orgunit()
 
-    conn.close()
 
 
 def write_to_table(conn, table, df, table_columns, batch_size=1000):
@@ -392,7 +395,8 @@ def get_department_cources(term, year, department):
         conn.close()
 
 
-def update_btgd_ancestor_orgunit(conn):
+def update_btgd_ancestor_orgunit():
+    conn = get_db_connection()
     cursor = conn.cursor()
     try:
         # Get OrgUnitIds for BTGD department that are not already mapped to AncestorOrgUnitId = 6937
@@ -435,3 +439,4 @@ def update_btgd_ancestor_orgunit(conn):
     finally:
         if cursor:
             cursor.close()
+    conn.close()
