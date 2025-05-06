@@ -18,14 +18,14 @@ CREATE TABLE OrganizationalUnits (
 
 -- Create table for ContentObjects (Child Table)
 CREATE TABLE ContentObjects (
-    ContentObjectId INT NULL,
-    OrgUnitId INT PRIMARY KEY,
+    ContentObjectId INT(11) NULL,
+    OrgUnitId INT(11) NOT NULL,
     Title VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     ContentObjectType VARCHAR(6) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     Location VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     LastModified DATETIME,
-    IsDeleted BOOLEAN,
-
+    IsDeleted TINYINT(1),
+    PRIMARY KEY (OrgUnitId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Recreate it without foreign key constraints
