@@ -178,6 +178,7 @@ def setContentObjects():
     ]
     table_columns_dict = get_table_columns(cursor, 'ContentObjects')
     table_columns = list(table_columns_dict.keys())
+    print(table_columns)
     datetime_columns = [col for col, dtype in table_columns_dict.items() if dtype in ("datetime", "timestamp")]
 
     filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
