@@ -145,6 +145,11 @@ def setOrganizationalUnits(conn):
     content_table_columns = list(content_table_columns_dict.keys())
     content_datetime_columns = [col for col, dtype in content_table_columns_dict.items() if dtype in ("datetime", "timestamp")]
 
+
+    print("Org columns:", table_columns_dict.keys())
+    print("Content columns:", content_table_columns_dict.keys())
+
+
     filtered_content_objects_df = filtered_content_objects_df.copy()  # Ensure it's a copy
     if not filtered_content_objects_df.empty:
         filtered_content_objects_df = convert_datetime_columns(filtered_content_objects_df, content_datetime_columns)
@@ -211,7 +216,6 @@ def setDb():
 
 def write_to_table(conn, table, df, table_columns, batch_size=1000):
     cursor = conn.cursor()
-    print(table_columns)
     placeholders = ", ".join(["%s"] * len(table_columns))
     #update_placeholders = ", ".join([f"{col} = VALUES({col})" for col in table_columns])
     update_placeholders = ", ".join([f"{col} = VALUES({col})" for col in table_columns if col != 'Recorded'])
