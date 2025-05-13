@@ -103,8 +103,7 @@ def setOrganizationalUnits():
     organizational_units_df = readCSV(f'{file_path}/OrganizationalUnits.csv')
     
     # Filter out Course Offerings only
-    organizational_units_df[organizational_units_df['OrgUnitTypeId'] == 3]
-
+    organizational_units_df = organizational_units_df[organizational_units_df['OrgUnitTypeId'] == 3]
     # Select only the needed columns from OrganizationalUnits.csv
     organizational_units_filtered = organizational_units_df[[
         'OrgUnitId', 'Name', 'Code', 'IsActive', 'CreatedDate', 'IsDeleted'
@@ -131,9 +130,9 @@ def setOrganizationalUnits():
     
     filtered_df = filtered_df.copy()
     if not filtered_df.empty:
-        filtered_df.loc[:, 'Recorded'] = 0
         filtered_df = convert_datetime_columns(filtered_df, datetime_columns)
         filtered_df = filtered_df.astype(object).where(pd.notnull(filtered_df), None)
+        filtered_df['Recorded'] = 0
         write_to_table(conn, 'OrganizationalUnits', filtered_df, table_columns)
 
     cursor.close()
