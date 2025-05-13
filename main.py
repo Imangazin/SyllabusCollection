@@ -321,7 +321,7 @@ logger.info('Tokens are set.')
 datahub_path = 'datahub/'
 os.makedirs(datahub_path, exist_ok=True)
 logger.info('Downloading reports.')
-get_data_hub_reports()
+#get_data_hub_reports()
 logger.info('Reports are downloaded.')
 
 
@@ -358,7 +358,7 @@ for each in term_year:
     logger.info('Requesting syllabus data that are not been pushed to BS for given year and term.')
     syllabus_to_run = csv_db.get_sylabus(syllabus_query, term, year)
     logger.info('Downloading syllabuses and uploading them into Project sites.')
-    download_upload_syllabus(syllabus_to_run)
+    #download_upload_syllabus(syllabus_to_run)
 
     logger.info('Updating Recorded field in DB.')
     csv_db.update_syllabus_recorded(syllabus_to_run)
