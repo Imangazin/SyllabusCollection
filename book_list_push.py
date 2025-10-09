@@ -17,22 +17,38 @@ def get_db_connection():
 # Load CSV into pandas
 df = pd.read_csv("datahub/booklist.csv")
 
+# Load .env before reading env vars
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 
 db_config = get_db_config()
 
-# Connect to MySQL
+# Ensure pandas NA values become Python None for MySQL
+df = df.astype(object).where(pd.notnull(df), None)
+
+# Keep only expected columns in the correct order
+cols = [
+    'Term', 'Department', 'CourseNumber', 'Section',
+    'LastName', 'FirstName', 'AdaptionStatus', 'Code'
+]
+missing = [c for c in cols if c not in df.columns]
+if missing:
+    raise ValueError(f"CSV is missing required columns: {missing}")
+
+data = [tuple(row[c] for c in cols) for _, row in df.iterrows()]
+
+# Connect to MySQL and insert
 conn = get_db_connection()
 cursor = conn.cursor()
-
-# Insert row by row
-for _, row in df.iterrows():
-    cursor.execute("""
+try:
+    cursor.executemany(
+        """
         INSERT INTO BookList (Term, Department, CourseNumber, Section, LastName, FirstName, AdaptionStatus, Code)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, tuple(row))
-
-conn.commit()
-cursor.close()
-conn.close()
+        """,
+        data
+    )
+    conn.commit()
+finally:
+    cursor.close()
+    conn.close()
