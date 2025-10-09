@@ -29,7 +29,7 @@ df = df.astype(object).where(pd.notnull(df), None)
 # Keep only expected columns in the correct order
 cols = [
     'Term', 'Department', 'CourseNumber', 'Section',
-    'LastName', 'FirstName', 'AdaptionStatus', 'Code'
+    'LastName', 'FirstName', 'AdoptionStatus', 'Code'
 ]
 missing = [c for c in cols if c not in df.columns]
 if missing:
@@ -43,7 +43,7 @@ cursor = conn.cursor()
 try:
     cursor.executemany(
         """
-        INSERT INTO BookList (Term, Department, CourseNumber, Section, LastName, FirstName, AdaptionStatus, Code)
+        INSERT INTO BookList (Term, Department, CourseNumber, Section, LastName, FirstName, AdoptionStatus, Code)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """,
         data
