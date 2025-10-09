@@ -4,7 +4,6 @@ import os
 import re
 from logger_config import logger
 import dotenv
-import os
 
 department_courses_query = f"""
         SELECT 
