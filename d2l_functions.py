@@ -310,6 +310,7 @@ def generate_syllabus_html(df, base_output_dir):
                 <thead>
                     <tr>
                         <th>Course Code</th>
+                        <th>Adaption Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -349,6 +350,7 @@ def generate_syllabus_html(df, base_output_dir):
             html_content += f"""
                 <tr>
                     <td>{syllabus_link}</td>
+                    <td>{row['AdoptionStatus']}</td>
                     <td>
                         <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
                         <button class="icon-btn exempt {exempt_value}" title="Exempt" data-url="{exempt_url}"></button>
