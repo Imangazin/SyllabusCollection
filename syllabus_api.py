@@ -14,6 +14,8 @@ dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 origin = os.environ["bspace_url"]
 
+QUALIFIED_SECTION_TYPES = ("ASO","ASY","BLD","CLI","HYF","LEC","LL","SYN","SYO")
+
 def get_config():
     dotenv.load_dotenv(dotenv_file, override=True)
     return {
@@ -48,11 +50,86 @@ def get_access_token():
     return config["access_token"]
 
 
+def pct(n, d):
+    if not d:
+        return 0.0
+    return (float(n) / float(d)) * 100.0
+
+def make_stats_row(year, terms, faculty_id, label):
+    c = csv_db.fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, faculty_id)
+    return {
+        "label": label,
+        "raw_collected": c["recorded"],
+        "raw_total": c["total"],
+        "raw_pct": pct(c["recorded"], c["total"]),
+        "qualified_collected": c["qualified_recorded"],
+        "qualified_total": c["qualified_total"],
+        "qualified_pct": pct(c["qualified_recorded"], c["qualified_total"]),
+    }
+
 
 app = Flask(__name__)
 #CORS(app, resources={r"/api/*": {"origins": origin}})
 logger.info(f"Origin: {origin}")
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB
+
+
+@app.route("/api/stats", methods=["GET"])
+def api_stats():
+    faculty_id = request.args.get("facultyId")
+    token = request.args.get('token')
+    if not faculty_id or not token or not api_auth.verify_token(faculty_id, token):
+        logger.error('api/stats: Invalid or missing signature')
+        abort(403, 'Invalid or missing signature')
+
+
+    years = csv_db.get_last_three_years()
+    sections = {"full_year": [], "fw": [], "sp": [], "su": []}
+
+    for y in years:
+        sections["full_year"].append(make_stats_row(y, ("FW","SP","SU"), faculty_id, label=str(y)))
+        sections["fw"].append(make_stats_row(y, ("FW",), faculty_id, label="{}-FW".format(y)))
+        sections["sp"].append(make_stats_row(y, ("SP",), faculty_id, label="{}-SP".format(y)))
+        sections["su"].append(make_stats_row(y, ("SU",), faculty_id, label="{}-SU".format(y)))
+
+    return jsonify(sections)
+
+
+@app.route("/api/stats/by-department", methods=["GET"])
+def api_stats_by_department():
+    faculty_id = request.args.get("facultyId")
+    token = request.args.get('token')
+    if not faculty_id or not token or not api_auth.verify_token(faculty_id, token):
+        logger.error('api/stats/by-department: Invalid or missing signature')
+        abort(403, 'Invalid or missing signature')
+
+    years = csv_db.get_last_three_years()
+
+    data = csv_db.fetch_department_count(years, QUALIFIED_SECTION_TYPES, faculty_id)
+
+    # pivot to: Department | year1 | year2 | year3
+    by_dept = {}
+    for dept, year, q_total, q_recorded in data:
+        dept = str(dept)
+        year = str(year)
+        q_total = int(q_total or 0)
+        q_recorded = int(q_recorded or 0)
+        pct_val = 0.0 if q_total == 0 else (float(q_recorded) / float(q_total) * 100.0)
+
+        if dept not in by_dept:
+            by_dept[dept] = {"department": dept}
+        by_dept[dept][year] = pct_val
+
+    year_keys = [str(y) for y in years]
+    rows = []
+    for dept in sorted(by_dept.keys()):
+        r = by_dept[dept]
+        for y in year_keys:
+            if y not in r:
+                r[y] = 0.0
+        rows.append(r)
+
+    return jsonify({"years": years, "rows": rows})
 
 
 @app.route('/api/upload', methods=['POST'])

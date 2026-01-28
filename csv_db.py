@@ -441,3 +441,84 @@ def update_btgd_ancestor_orgunit():
         if cursor:
             cursor.close()
     conn.close()
+
+# Returns the last three years 
+def get_last_three_years():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        last_three_years = f"""
+            SELECT DISTINCT Year 
+            FROM OrganizationalUnits 
+            WHERE IsDeleted = 0 
+            AND Year BETWEEN YEAR(CURDATE()) - 2 AND YEAR(CURDATE());
+        """
+        cursor.execute(last_three_years)
+        years = cursor.fetchall()
+        return years
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, project_id=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        term_placeholders = ",".join(["%s"] * len(terms))
+        sql = f"""
+            SELECT
+                COUNT(*) AS total,
+                SUM(ou.Recorded >= 1) AS recorded,
+                SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
+                SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded = 1)) AS qualified_recorded
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            WHERE ou.IsDeleted = 0
+              AND ou.Year = %s
+              AND ou.Term IN ({term_placeholders})
+              AND f.ProjectId = {project_id};
+        """
+        params = [str(year)] + list(terms)
+        cursor.execute(sql, params)
+        row = cursor.fetchone() or (0, 0, 0, 0)
+        total, recorded, q_total, q_recorded = row
+        return {
+            "total": int(total or 0),
+            "recorded": int(recorded or 0),
+            "qualified_total": int(q_total or 0),
+            "qualified_recorded": int(q_recorded or 0),
+        }
+    finally:
+        cursor.close()
+
+
+def fetch_department_count(years,QUALIFIED_SECTION_TYPES, project_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        sql = f"""
+            SELECT
+                ou.Department AS department,
+                ou.Year AS year,
+            SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
+            SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded = 1)) AS qualified_recorded
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            WHERE ou.IsDeleted = 0
+                AND ou.Year in ({",".join(["%s"] * len(years))})
+                AND ou.Term in ('FW','SP','SU')
+                AND ou.Department <> ''
+                AND f.ProjectId = {project_id}
+            GROUP BY ou.Department, year
+            ORDER BY ou.Department ASC, year ASC;
+        """
+        params = [str(y) for y in years]
+        cursor.execute(sql, params)
+        data = cursor.fetchall()
+        return data
+    finally:
+        cursor.close()
