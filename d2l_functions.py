@@ -326,6 +326,8 @@ def generate_syllabus_html(df, base_output_dir):
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
 
+            if row['Recorded']==0:
+                syllabus_link = row['Code']
             if row['Recorded']==1:
                 if pd.isna(row['Location']):
                     syllabus_link = row['Code']
@@ -337,11 +339,9 @@ def generate_syllabus_html(df, base_output_dir):
                         file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
-            elif row['Recorded']==2:
+            elif row['Recorded']>1:
                 syllabus_link = f"{row['Code']} (exempted)"
                 exempt_value = 'unexempt'
-            else: 
-                syllabus_link = row['Code']
 
             url_token = api_auth.generate_token(row['Code'])
             upload_url = f"https://cpi.brocku.ca/{api_route}/upload?course={row['Code']}&token={url_token}&projectId={row['ProjectId']}"

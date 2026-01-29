@@ -73,7 +73,7 @@ def get_config(mode):
     }
 
 def get_academic_term(current_date):
-    return ([{'term': 'SP', 'year':2025, 'identifier':'SP'}, {'term': 'SU', 'year':2025, 'identifier':'SPSU'}])
+    return ([{'term': 'FW', 'year':2024, 'identifier':'FW'}, {'term': 'SU', 'year':2025, 'identifier':'SPSU'},{'term': 'SP', 'year':2025, 'identifier':'SPSU'},{'term': 'FW', 'year':2025, 'identifier':'FW'}])
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
