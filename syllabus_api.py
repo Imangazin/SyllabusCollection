@@ -84,6 +84,7 @@ def api_stats():
 
 
     years = csv_db.get_last_three_years()
+    years = [y[0] for y in csv_db.get_last_three_years()]
     sections = {"full_year": [], "fw": [], "sp": [], "su": []}
 
     for y in years:
@@ -104,6 +105,7 @@ def api_stats_by_department():
         abort(403, 'Invalid or missing signature')
 
     years = csv_db.get_last_three_years()
+    years = [y[0] for y in csv_db.get_last_three_years()]
 
     data = csv_db.fetch_department_count(years, QUALIFIED_SECTION_TYPES, faculty_id)
 
