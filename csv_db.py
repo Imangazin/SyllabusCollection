@@ -543,7 +543,7 @@ def fetch_department_count(years, project_id):
         conn.close()
 
 
-def campus_store_complete():
+def campus_store_complete(year, term):
     """Set OrganizationalUnits.Recorded = 4 when Campus Store adoption is complete (exact code match)."""
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -555,7 +555,9 @@ def campus_store_complete():
               ON ou.Code = bl.Code
             SET ou.Recorded = 4
             WHERE ou.Recorded = 0
-              AND bl.AdoptionStatus = 'Complete';
+              AND bl.AdoptionStatus = 'Complete'
+              AND ou.Year = {year}
+              AND ou.Term = {term};
         """
         logger.info("Updating OrganizationalUnits.Recorded from 0 to 4 using exact code match")
         cursor.execute(sql)
@@ -571,7 +573,7 @@ def campus_store_complete():
         cursor.close()
         conn.close()
 
-def mark_ignored_sections():
+def mark_ignored_sections(year, term):
     """
     Set OrganizationalUnits.Recorded = 5 for ignored section types
     when they are currently unrecorded (Recorded = 0).
@@ -584,7 +586,9 @@ def mark_ignored_sections():
             UPDATE OrganizationalUnits
             SET Recorded = 5
             WHERE Recorded = 0
-              AND SectionType IN {IGNORED_SECTION_TYPES};
+              AND SectionType IN {IGNORED_SECTION_TYPES}
+              AND Year = {year}
+              AND Term = {term};
         """
         logger.info(
             "Updating OrganizationalUnits.Recorded from 0 to 5 for IGNORED_SECTION_TYPES"

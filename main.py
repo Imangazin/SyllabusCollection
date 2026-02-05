@@ -367,10 +367,10 @@ for each in term_year:
     csv_db.update_syllabus_recorded(syllabus_to_run)
 
     logger.info('Setting Recorded=4 if Campus store status Complete')
-    csv_db.campus_store_complete()
+    csv_db.campus_store_complete(year, term)
 
     logger.info('Setting Recorded=5 if the section type is in IGNORED_SECTION_TYPES')
-    csv_db.mark_ignored_sections()
+    csv_db.mark_ignored_sections(year, term)
 
     logger.info('Requesting new all courses data for given term and year.')
     all_courses = csv_db.get_sylabus(all_courses_query,  term, year)
