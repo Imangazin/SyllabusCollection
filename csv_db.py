@@ -549,18 +549,18 @@ def campus_store_complete(year, term):
     cursor = conn.cursor()
 
     try:
-        sql = f"""
+        sql = """
             UPDATE OrganizationalUnits ou
             JOIN BookList bl
               ON ou.Code = bl.Code
             SET ou.Recorded = 4
             WHERE ou.Recorded = 0
               AND bl.AdoptionStatus = 'Complete'
-              AND ou.Year = {year}
-              AND ou.Term = {term};
+              AND ou.Year = %s
+              AND ou.Term = %s;
         """
         logger.info("Updating OrganizationalUnits.Recorded from 0 to 4 using exact code match")
-        cursor.execute(sql)
+        cursor.execute(sql, (str(year), str(term)))
         conn.commit()
         logger.info(f"Updated {cursor.rowcount} rows.")
 
@@ -587,13 +587,13 @@ def mark_ignored_sections(year, term):
             SET Recorded = 5
             WHERE Recorded = 0
               AND SectionType IN {IGNORED_SECTION_TYPES}
-              AND Year = {year}
-              AND Term = {term};
+              AND Year = %s
+              AND Term = %s;
         """
         logger.info(
             "Updating OrganizationalUnits.Recorded from 0 to 5 for IGNORED_SECTION_TYPES"
         )
-        cursor.execute(sql)
+        cursor.execute(sql, (str(year), str(term)))
         conn.commit()
         logger.info(f"Updated {cursor.rowcount} rows (ignored sections).")
 
