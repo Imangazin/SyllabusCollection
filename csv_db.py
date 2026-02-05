@@ -549,7 +549,7 @@ def campus_store_complete(year, term):
     cursor = conn.cursor()
 
     try:
-        sql = """
+        sql = f"""
             UPDATE OrganizationalUnits ou
             JOIN BookList bl
               ON ou.Code = bl.Code
