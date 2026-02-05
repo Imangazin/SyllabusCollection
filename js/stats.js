@@ -10,9 +10,9 @@ function makeSummaryTable(selector, rows) {
     data: rows,
     columns: [
       { title: "Academic Year", data: "label" },
-      { title: "Raw Collected", data: "raw_collected" },
-      { title: "Raw Total Courses", data: "raw_total" },
-      { title: "Raw % Complete", data: "raw_pct", render: (d) => pctString(d) },
+      // { title: "Raw Collected", data: "raw_collected" },
+      // { title: "Raw Total Courses", data: "raw_total" },
+      // { title: "Raw % Complete", data: "raw_pct", render: (d) => pctString(d) },
       { title: "Qualified Collected", data: "qualified_collected" },
       { title: "Qualified Total Courses", data: "qualified_total" },
       { title: "Qualified % Complete", data: "qualified_pct", render: (d) => pctString(d) },

@@ -14,7 +14,7 @@ dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 origin = os.environ["bspace_url"]
 
-QUALIFIED_SECTION_TYPES = ("ASO","ASY","BLD","CLI","HYF","LEC","LL","SYN","SYO")
+#QUALIFIED_SECTION_TYPES = ("ASO","ASY","BLD","CLI","HYF","LEC","LL","SYN","SYO")
 
 def get_config():
     dotenv.load_dotenv(dotenv_file, override=True)
@@ -56,7 +56,7 @@ def pct(n, d):
     return (float(n) / float(d)) * 100.0
 
 def make_stats_row(year, terms, faculty_id, label):
-    c = csv_db.fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, faculty_id)
+    c = csv_db.fetch_counts(year, terms, faculty_id)
     return {
         "label": label,
         "raw_collected": c["recorded"],
@@ -107,7 +107,7 @@ def api_stats_by_department():
     years = csv_db.get_last_three_years()
     years = [y[0] for y in csv_db.get_last_three_years()]
 
-    data = csv_db.fetch_department_count(years, QUALIFIED_SECTION_TYPES, faculty_id)
+    data = csv_db.fetch_department_count(years, faculty_id)
 
     # pivot to: Department | year1 | year2 | year3
     by_dept = {}

@@ -328,7 +328,7 @@ def generate_syllabus_html(df, base_output_dir):
 
             if row['Recorded']==0:
                 syllabus_link = row['Code']
-            if row['Recorded']==1:
+            elif row['Recorded']==1:
                 if pd.isna(row['Location']):
                     syllabus_link = row['Code']
                 elif classify_location(row['Location']) == 'Link':
@@ -339,9 +339,15 @@ def generate_syllabus_html(df, base_output_dir):
                         file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
-            elif row['Recorded']>1:
-                syllabus_link = f"{row['Code']} (exempted)"
+            elif row['Recorded']==1:
+                syllabus_link = f"{row['Code']} (user-exempted)"
                 exempt_value = 'unexempt'
+            elif row['Recorded']==4:
+                syllabus_link = f"{row['Code']} (Found in Campus Store)"
+            elif row['Recorded']==5:
+                syllabus_link = f"{row['Code']} (auto-exempted)"
+                exempt_value = 'unexempt'        
+
 
             url_token = api_auth.generate_token(row['Code'])
             upload_url = f"https://cpi.brocku.ca/{api_route}/upload?course={row['Code']}&token={url_token}&projectId={row['ProjectId']}"

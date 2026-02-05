@@ -30,6 +30,21 @@ os.makedirs(file_path, exist_ok=True)
 
 BTGD = int(os.environ["BTGD-Faculty"])
 
+QUALIFIED_SECTION_TYPES = tuple(
+    s.strip() for s in os.environ.get(
+        "QUALIFIED_SECTION_TYPES",
+        "ASO,ASY,BLD,CLI,HYF,LEC,LL,SYN,SYO"
+    ).split(",")
+)
+
+IGNORED_SECTION_TYPES = tuple(
+    s.strip() for s in os.environ.get(
+        "IGNORED_SECTION_TYPES",
+        "PRO,SEM,FLD,LAB,INT,ONM,IFT,TUT"
+    ).split(",")
+)
+
+
 def get_db_config():
     return {
         "host": os.environ["host"],
@@ -463,7 +478,7 @@ def get_last_three_years():
         conn.close()
 
 
-def fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, project_id=None):
+def fetch_counts(year, terms, project_id=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
@@ -473,7 +488,7 @@ def fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, project_id=None):
                 COUNT(*) AS total,
                 SUM(ou.Recorded >= 1) AS recorded,
                 SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
-                SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded = 1)) AS qualified_recorded
+                SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded >= 1)) AS qualified_recorded
             FROM OrganizationalUnits ou
             LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
             LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
@@ -494,9 +509,10 @@ def fetch_counts(year, terms, QUALIFIED_SECTION_TYPES, project_id=None):
         }
     finally:
         cursor.close()
+        conn.close()
 
 
-def fetch_department_count(years,QUALIFIED_SECTION_TYPES, project_id):
+def fetch_department_count(years, project_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -506,7 +522,7 @@ def fetch_department_count(years,QUALIFIED_SECTION_TYPES, project_id):
                 ou.Department AS department,
                 ou.Year AS year,
             SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
-            SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded = 1)) AS qualified_recorded
+            SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded >= 1)) AS qualified_recorded
             FROM OrganizationalUnits ou
             LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
             LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
@@ -524,3 +540,64 @@ def fetch_department_count(years,QUALIFIED_SECTION_TYPES, project_id):
         return data
     finally:
         cursor.close()
+        conn.close()
+
+
+def campus_store_complete():
+    """Set OrganizationalUnits.Recorded = 4 when Campus Store adoption is complete (exact code match)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = """
+            UPDATE OrganizationalUnits ou
+            JOIN BookList bl
+              ON ou.Code = bl.Code
+            SET ou.Recorded = 4
+            WHERE ou.Recorded = 0
+              AND bl.AdoptionStatus = 'Complete';
+        """
+        logger.info("Updating OrganizationalUnits.Recorded from 0 to 4 using exact code match")
+        cursor.execute(sql)
+        conn.commit()
+        logger.info(f"Updated {cursor.rowcount} rows.")
+
+    except mysql.connector.Error as err:
+        logger.error(f"campus_store_complete failed: {err}")
+        conn.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        conn.close()
+
+def mark_ignored_sections():
+    """
+    Set OrganizationalUnits.Recorded = 5 for ignored section types
+    when they are currently unrecorded (Recorded = 0).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = f"""
+            UPDATE OrganizationalUnits
+            SET Recorded = 5
+            WHERE Recorded = 0
+              AND SectionType IN {IGNORED_SECTION_TYPES};
+        """
+        logger.info(
+            "Updating OrganizationalUnits.Recorded from 0 to 5 for IGNORED_SECTION_TYPES"
+        )
+        cursor.execute(sql)
+        conn.commit()
+        logger.info(f"Updated {cursor.rowcount} rows (ignored sections).")
+
+    except mysql.connector.Error as err:
+        logger.error(f"mark_ignored_sections failed: {err}")
+        conn.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        conn.close()
