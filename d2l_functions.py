@@ -339,7 +339,7 @@ def generate_syllabus_html(df, base_output_dir):
                         file_extension = '.html'
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
-            elif row['Recorded']==1:
+            elif row['Recorded']==2:
                 syllabus_link = f"{row['Code']} (user-exempted)"
                 exempt_value = 'unexempt'
             elif row['Recorded']==4:
