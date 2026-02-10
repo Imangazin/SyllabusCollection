@@ -152,6 +152,7 @@ def upload():
             abort(400, 'No file uploaded')
 
         year, term, department = extract_info(course_code)
+        logger.debug(f"year: {year}, term: {term}, department: {department}")
         orgUnitId = csv_db.get_orgUnitId_by_code(course_code)
         if orgUnitId is None:
             logger.error(f"orgUnitId not found for course_code: {course_code}")

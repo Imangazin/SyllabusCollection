@@ -55,10 +55,11 @@ window.addEventListener("load", async () => {
   try {
     const facultyId = window.FACULTY_ID;
     const API_BASE = window.API_BASE || "";
-    const API_ROUTE = window.API_ROUTE || "/api";
+    const API_ROUTE = window.API_ROUTE || "/test-api";
+    const token =window.token;
 
-    const statsUrl = `${API_BASE}${API_ROUTE}/stats?facultyId=${encodeURIComponent(facultyId)}&token=eiV7Y82DiEpxwjz22wbuxWaEKxEobo0n25dNtUo6FC4=`;
-    const deptUrl  = `${API_BASE}${API_ROUTE}/stats/by-department?facultyId=${encodeURIComponent(facultyId)}&token=eiV7Y82DiEpxwjz22wbuxWaEKxEobo0n25dNtUo6FC4=`;
+    const statsUrl = `${API_BASE}${API_ROUTE}/stats?facultyId=${encodeURIComponent(facultyId)}&token=${token}`;
+    const deptUrl  = `${API_BASE}${API_ROUTE}/stats/by-department?facultyId=${encodeURIComponent(facultyId)}&token=${token}`;
 
     const stats = await loadJson(statsUrl);
     makeSummaryTable("#tbl-full", stats.full_year || []);
