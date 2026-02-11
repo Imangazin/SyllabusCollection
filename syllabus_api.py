@@ -282,10 +282,10 @@ def api_report_academic_year():
     full_year_df = pd.DataFrame([{
         'Academic Year': str(year),
         'Terms': 'FW+SP+SU',
-        'Raw Collected': int(full_counts.get('recorded', 0) or 0),
-        'Raw Total Courses': int(full_counts.get('total', 0) or 0),
-        'Raw % Complete': pct(int(full_counts.get('recorded', 0) or 0), int(full_counts.get('total', 0) or 0)),
-        'Qualified Collected': int(full_counts.get('qualified_recorded', 0) or 0),
+        # 'Raw Collected': int(full_counts.get('recorded', 0) or 0),
+        # 'Raw Total Courses': int(full_counts.get('total', 0) or 0),
+        # 'Raw % Complete': pct(int(full_counts.get('recorded', 0) or 0), int(full_counts.get('total', 0) or 0)),
+        # 'Qualified Collected': int(full_counts.get('qualified_recorded', 0) or 0),
         'Qualified Total Courses': int(full_counts.get('qualified_total', 0) or 0),
         'Qualified % Complete': pct(int(full_counts.get('qualified_recorded', 0) or 0), int(full_counts.get('qualified_total', 0) or 0)),
     }])
@@ -296,9 +296,9 @@ def api_report_academic_year():
         by_term_rows.append({
             'Academic Year': str(year),
             'Term': t,
-            'Raw Collected': int(c.get('recorded', 0) or 0),
-            'Raw Total Courses': int(c.get('total', 0) or 0),
-            'Raw % Complete': pct(int(c.get('recorded', 0) or 0), int(c.get('total', 0) or 0)),
+            # 'Raw Collected': int(c.get('recorded', 0) or 0),
+            # 'Raw Total Courses': int(c.get('total', 0) or 0),
+            # 'Raw % Complete': pct(int(c.get('recorded', 0) or 0), int(c.get('total', 0) or 0)),
             'Qualified Collected': int(c.get('qualified_recorded', 0) or 0),
             'Qualified Total Courses': int(c.get('qualified_total', 0) or 0),
             'Qualified % Complete': pct(int(c.get('qualified_recorded', 0) or 0), int(c.get('qualified_total', 0) or 0)),
@@ -338,8 +338,16 @@ def api_report_academic_year():
     if not courses_df.empty and 'Recorded' in courses_df.columns:
         courses_df['SyllabusStatus'] = courses_df['Recorded'].apply(map_recorded_status)
 
-    preferred = ['Year', 'Term', 'Department', 'Code', 'AdoptionStatus', 'Recorded', 'SyllabusStatus']
-    course_cols = [c for c in preferred if c in courses_df.columns] + [c for c in courses_df.columns if c not in preferred]
+    # Rename AdoptionStatus column for report clarity
+    if 'AdoptionStatus' in courses_df.columns:
+        courses_df = courses_df.rename(columns={'AdoptionStatus': 'Book Store Status'})
+
+    # Do not include 'Recorded' in the report output
+    preferred = ['Year', 'Term', 'Department', 'Code', 'Book Store Status', 'SyllabusStatus']
+
+    course_cols = [c for c in preferred if c in courses_df.columns] + \
+                  [c for c in courses_df.columns if c not in preferred and c != 'Recorded']
+
     courses_df = courses_df[course_cols] if not courses_df.empty else pd.DataFrame(columns=preferred)
 
     filename = f"syllabus_report_{year}.xlsx"
@@ -347,35 +355,35 @@ def api_report_academic_year():
     bio = io.BytesIO()
     with pd.ExcelWriter(bio, engine='openpyxl') as writer:
         sheet = 'report'
-        ws = None
 
         # Section 1: Full Year
-        start_row = 0
-        ws = writer.book.create_sheet(sheet)
-        # Write heading
-        ws.cell(row=start_row + 1, column=1, value='Full Year (FW+SP+SU)')
-        full_year_df.to_excel(writer, index=False, sheet_name=sheet, startrow=start_row + 1)
+        startrow = 1
+        full_year_df.to_excel(writer, index=False, sheet_name=sheet, startrow=startrow)
+        ws = writer.sheets[sheet]
+        ws.cell(row=startrow, column=1, value='Full Year (FW+SP+SU)')
 
         # Section 2: By Term
-        start_row = start_row + 1 + len(full_year_df) + 4
-        ws.cell(row=start_row + 1, column=1, value='By Term')
-        by_term_df.to_excel(writer, index=False, sheet_name=sheet, startrow=start_row + 1)
+        startrow = startrow + len(full_year_df) + 4
+        by_term_df.to_excel(writer, index=False, sheet_name=sheet, startrow=startrow)
+        ws.cell(row=startrow, column=1, value='By Term')
 
         # Section 3: By Department
-        start_row = start_row + 1 + len(by_term_df) + 4
-        ws.cell(row=start_row + 1, column=1, value='By Department')
-        by_dept_df.to_excel(writer, index=False, sheet_name=sheet, startrow=start_row + 1)
+        startrow = startrow + len(by_term_df) + 4
+        by_dept_df.to_excel(writer, index=False, sheet_name=sheet, startrow=startrow)
+        ws.cell(row=startrow, column=1, value='By Department')
 
         # Section 4: Courses
-        start_row = start_row + 1 + len(by_dept_df) + 4
-        ws.cell(row=start_row + 1, column=1, value='Courses')
-        courses_df.to_excel(writer, index=False, sheet_name=sheet, startrow=start_row + 1)
+        startrow = startrow + len(by_dept_df) + 4
+        courses_df.to_excel(writer, index=False, sheet_name=sheet, startrow=startrow)
+        ws.cell(row=startrow, column=1, value='Courses')
 
-        ws.freeze_panes = 'A1'
+        # Freeze the first row
+        ws.freeze_panes = 'A2'
 
-        # Remove the default empty sheet created by openpyxl, if present
-        if 'Sheet' in writer.book.sheetnames and len(writer.book.sheetnames) > 1:
-            del writer.book['Sheet']
+        # Remove the default empty sheet created by openpyxl (commonly named 'Sheet')
+        for name in list(writer.book.sheetnames):
+            if name != sheet and name.lower().startswith('sheet'):
+                del writer.book[name]
 
     bio.seek(0)
     return send_file(
