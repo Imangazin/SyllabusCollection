@@ -285,7 +285,7 @@ def api_report_academic_year():
         # 'Raw Collected': int(full_counts.get('recorded', 0) or 0),
         # 'Raw Total Courses': int(full_counts.get('total', 0) or 0),
         # 'Raw % Complete': pct(int(full_counts.get('recorded', 0) or 0), int(full_counts.get('total', 0) or 0)),
-        # 'Qualified Collected': int(full_counts.get('qualified_recorded', 0) or 0),
+        'Qualified Collected': int(full_counts.get('qualified_recorded', 0) or 0),
         'Qualified Total Courses': int(full_counts.get('qualified_total', 0) or 0),
         'Qualified % Complete': pct(int(full_counts.get('qualified_recorded', 0) or 0), int(full_counts.get('qualified_total', 0) or 0)),
     }])
