@@ -543,6 +543,61 @@ def fetch_department_count(years, project_id):
         conn.close()
 
 
+# fetch_academic_year_courses
+def fetch_academic_year_courses(year, terms, project_id):
+    """Return course-level rows for an academic year across terms.
+
+    Returns a pandas DataFrame with (at minimum):
+      - Year, Term, Department, Code, Recorded, SectionType, AdoptionStatus
+
+    Filters:
+      - ou.IsDeleted = 0
+      - ou.Year = year
+      - ou.Term in terms
+      - f.ProjectId = project_id
+      - optional ou.Department = department
+
+    Notes:
+      - BookList join uses prefix match to support section codes.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        term_placeholders = ",".join(["%s"] * len(terms))
+
+        sql = f"""
+            SELECT
+                ou.Year,
+                ou.Term,
+                ou.Department,
+                ou.Code,
+                ou.SectionType,
+                ou.Recorded,
+                bl.AdoptionStatus
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            LEFT JOIN BookList bl ON ou.Code LIKE CONCAT(bl.Code, '%')
+            WHERE ou.IsDeleted = 0
+              AND ou.Year = %s
+              AND ou.Term IN ({term_placeholders})
+              AND f.ProjectId = {project_id}
+        """
+
+        params = [str(year)] + [str(t) for t in terms]
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        column_names = [desc[0] for desc in cursor.description]
+        return pd.DataFrame(rows, columns=column_names)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def campus_store_complete(year, term):
     """Set OrganizationalUnits.Recorded = 4 when Campus Store adoption is complete (exact code match)."""
     conn = get_db_connection()
