@@ -18,7 +18,16 @@ department_courses_query = f"""
         LEFT JOIN ContentObjects co ON ou.OrgUnitId = co.OrgUnitId
         LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
         LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
-        LEFT JOIN BookList bl ON ou.Code LIKE CONCAT(bl.Code, '%')
+        LEFT JOIN (
+            SELECT
+                Code,
+                CASE
+                WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                ELSE MAX(AdoptionStatus)
+                END AS AdoptionStatus
+            FROM BookList
+            GROUP BY Code
+        ) bl ON ou.Code = bl.Code
         WHERE ou.Year = %s 
         AND ou.Term = %s 
         AND ou.Department = %s
@@ -555,10 +564,7 @@ def fetch_academic_year_courses(year, terms, project_id):
       - ou.Year = year
       - ou.Term in terms
       - f.ProjectId = project_id
-      - optional ou.Department = department
 
-    Notes:
-      - BookList join uses prefix match to support section codes.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -578,7 +584,16 @@ def fetch_academic_year_courses(year, terms, project_id):
             FROM OrganizationalUnits ou
             LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
             LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
-            LEFT JOIN BookList bl ON ou.Code LIKE CONCAT(bl.Code, '%')
+            LEFT JOIN (
+                    SELECT
+                        Code,
+                        CASE
+                        WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                        ELSE MAX(AdoptionStatus)
+                        END AS AdoptionStatus
+                    FROM BookList
+                    GROUP BY Code
+            ) bl ON ou.Code = bl.Code
             WHERE ou.IsDeleted = 0
               AND ou.Year = %s
               AND ou.Term IN ({term_placeholders})
@@ -606,8 +621,16 @@ def campus_store_complete(year, term):
     try:
         sql = """
             UPDATE OrganizationalUnits ou
-            JOIN BookList bl
-              ON ou.Code = bl.Code
+            JOIN (
+                SELECT
+                    Code,
+                    CASE
+                    WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                    ELSE MAX(AdoptionStatus)
+                    END AS AdoptionStatus
+                FROM BookList
+                GROUP BY Code
+            ) bl ON ou.Code = bl.Code
             SET ou.Recorded = 4
             WHERE ou.Recorded = 0
               AND bl.AdoptionStatus = 'Complete'

@@ -42,7 +42,16 @@ all_courses_query = f"""
         LEFT JOIN ContentObjects co ON ou.OrgUnitId = co.OrgUnitId
         LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
         LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
-        LEFT JOIN BookList bl ON ou.Code LIKE CONCAT(bl.Code, '%')
+        LEFT JOIN (
+                SELECT
+                    Code,
+                    CASE
+                    WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                    ELSE MAX(AdoptionStatus)
+                    END AS AdoptionStatus
+                FROM BookList
+                GROUP BY Code
+                ) bl ON ou.Code = bl.Code
         WHERE ou.Year = %s 
         AND ou.Term = %s 
         AND f.ProjectId IS NOT NULL;
