@@ -304,7 +304,26 @@ def generate_syllabus_html(df, base_output_dir):
         </head>
         <body>
             <h2>Syllabus for {department} - {year} - {term}</h2>
-            <p>Total Courses: {total_courses}, Syllabuses Available or Exempted: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
+
+            <div class="kpi-container">
+                <div class="kpi-box kpi-total">
+                    <div class="kpi-value">{total_courses}</div>
+                    <div class="kpi-label">Total Courses</div>
+                </div>
+                <div class="kpi-box kpi-complete">
+                    <div class="kpi-value">{recorded_syllabuses}</div>
+                    <div class="kpi-label">Complete</div>
+                </div>
+                <div class="kpi-box kpi-incomplete">
+                    <div class="kpi-value">{total_courses - recorded_syllabuses}</div>
+                    <div class="kpi-label">Needs Attention</div>
+                </div>
+                <div class="kpi-box kpi-percent">
+                    <div class="kpi-value">{recorded_percentage:.1f}%</div>
+                    <div class="kpi-label">Completion Rate</div>
+                </div>
+            </div>
+
             <p><a href="https://cpi.brocku.ca/{api_route}/report?department={department}&year={year}&term={term}&token={api_auth.generate_token(f'{department}-{year}-{term}')}" class="download-report">Download Report</a></p>
             <table id="{department}-{year}-{term}" class="display">
                 <thead>
