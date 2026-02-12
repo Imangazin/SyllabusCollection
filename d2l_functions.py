@@ -325,6 +325,8 @@ def generate_syllabus_html(df, base_output_dir):
             exempt_value = 'exempt'
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
+            is_complete = row['Recorded'] in (1, 2, 4, 5)
+            row_class = 'row-complete' if is_complete else 'row-incomplete'
 
             if row['Recorded']==0:
                 syllabus_link = row['Code']
@@ -354,7 +356,7 @@ def generate_syllabus_html(df, base_output_dir):
             exempt_url = f"https://cpi.brocku.ca/{api_route}/exempt?course={row['Code']}&token={url_token}&action={exempt_value}"
 
             html_content += f"""
-                <tr>
+                <tr class="{row_class}">
                     <td>{syllabus_link}</td>
                     <td>{row['AdoptionStatus']}</td>
                     <td>
