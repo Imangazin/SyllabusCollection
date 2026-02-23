@@ -36,11 +36,22 @@ all_courses_query = f"""
             ou.CourseNumber, ou.SectionType, ou.Recorded,
             co.Location, co.IsDeleted,
             oua.AncestorOrgUnitId AS FacultyId,
-            f.ProjectId
+            f.ProjectId,
+            bl.AdoptionStatus
         FROM OrganizationalUnits ou
         LEFT JOIN ContentObjects co ON ou.OrgUnitId = co.OrgUnitId
         LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
         LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+        LEFT JOIN (
+                SELECT
+                    Code,
+                    CASE
+                    WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                    ELSE MAX(AdoptionStatus)
+                    END AS AdoptionStatus
+                FROM BookList
+                GROUP BY Code
+                ) bl ON ou.Code = bl.Code
         WHERE ou.Year = %s 
         AND ou.Term = %s 
         AND f.ProjectId IS NOT NULL;
@@ -71,6 +82,7 @@ def get_config(mode):
     }
 
 def get_academic_term(current_date):
+    return ([{'term': 'FW', 'year':2024, 'identifier':'FW'}, {'term': 'SU', 'year':2025, 'identifier':'SPSU'},{'term': 'SP', 'year':2025, 'identifier':'SU'},{'term': 'FW', 'year':2025, 'identifier':'FW'}])
     year = current_date.year
     if (current_date>date(year,8,24) and current_date<=date(year,12,31)):
         return ([{'term': 'FW', 'year':year, 'identifier':'FW'}])
@@ -321,7 +333,7 @@ logger.info('Tokens are set.')
 datahub_path = 'datahub/'
 os.makedirs(datahub_path, exist_ok=True)
 logger.info('Downloading reports.')
-get_data_hub_reports()
+#get_data_hub_reports()
 logger.info('Reports are downloaded.')
 
 
@@ -358,10 +370,16 @@ for each in term_year:
     logger.info('Requesting syllabus data that are not been pushed to BS for given year and term.')
     syllabus_to_run = csv_db.get_sylabus(syllabus_query, term, year)
     logger.info('Downloading syllabuses and uploading them into Project sites.')
-    download_upload_syllabus(syllabus_to_run)
+    #download_upload_syllabus(syllabus_to_run)
 
     logger.info('Updating Recorded field in DB.')
     csv_db.update_syllabus_recorded(syllabus_to_run)
+
+    logger.info('Setting Recorded=4 if Campus store status Complete')
+    csv_db.campus_store_complete(year, term)
+
+    logger.info('Setting Recorded=5 if the section type is in IGNORED_SECTION_TYPES')
+    csv_db.mark_ignored_sections(year, term)
 
     logger.info('Requesting new all courses data for given term and year.')
     all_courses = csv_db.get_sylabus(all_courses_query,  term, year)

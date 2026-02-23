@@ -4,7 +4,6 @@ import os
 import re
 from logger_config import logger
 import dotenv
-import os
 
 department_courses_query = f"""
         SELECT 
@@ -13,11 +12,22 @@ department_courses_query = f"""
             ou.CourseNumber, ou.SectionType, ou.Recorded,
             co.Location, co.IsDeleted,
             oua.AncestorOrgUnitId AS FacultyId,
-            f.ProjectId
+            f.ProjectId,
+            bl.AdoptionStatus
         FROM OrganizationalUnits ou
         LEFT JOIN ContentObjects co ON ou.OrgUnitId = co.OrgUnitId
         LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
         LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+        LEFT JOIN (
+            SELECT
+                Code,
+                CASE
+                WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                ELSE MAX(AdoptionStatus)
+                END AS AdoptionStatus
+            FROM BookList
+            GROUP BY Code
+        ) bl ON ou.Code = bl.Code
         WHERE ou.Year = %s 
         AND ou.Term = %s 
         AND ou.Department = %s
@@ -28,6 +38,21 @@ file_path = 'datahub/'
 os.makedirs(file_path, exist_ok=True)
 
 BTGD = int(os.environ["BTGD-Faculty"])
+
+QUALIFIED_SECTION_TYPES = tuple(
+    s.strip() for s in os.environ.get(
+        "QUALIFIED_SECTION_TYPES",
+        "ASO,ASY,BLD,CLI,HYF,LEC,LL,SYN,SYO"
+    ).split(",")
+)
+
+IGNORED_SECTION_TYPES = tuple(
+    s.strip() for s in os.environ.get(
+        "IGNORED_SECTION_TYPES",
+        "PRO,SEM,FLD,LAB,INT,ONM,IFT,TUT"
+    ).split(",")
+)
+
 
 def get_db_config():
     return {
@@ -442,3 +467,219 @@ def update_btgd_ancestor_orgunit():
         if cursor:
             cursor.close()
     conn.close()
+
+# Returns the last three years 
+def get_last_three_years():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        last_three_years = f"""
+            SELECT DISTINCT Year 
+            FROM OrganizationalUnits 
+            WHERE IsDeleted = 0 
+            AND Year BETWEEN YEAR(CURDATE()) - 2 AND YEAR(CURDATE());
+        """
+        cursor.execute(last_three_years)
+        years = cursor.fetchall()
+        return years
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def fetch_counts(year, terms, project_id=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        term_placeholders = ",".join(["%s"] * len(terms))
+        sql = f"""
+            SELECT
+                COUNT(*) AS total,
+                SUM(ou.Recorded >= 1) AS recorded,
+                SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
+                SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded >= 1)) AS qualified_recorded
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            WHERE ou.IsDeleted = 0
+              AND ou.Year = %s
+              AND ou.Term IN ({term_placeholders})
+              AND f.ProjectId = {project_id};
+        """
+        params = [str(year)] + list(terms)
+        cursor.execute(sql, params)
+        row = cursor.fetchone() or (0, 0, 0, 0)
+        total, recorded, q_total, q_recorded = row
+        return {
+            "total": int(total or 0),
+            "recorded": int(recorded or 0),
+            "qualified_total": int(q_total or 0),
+            "qualified_recorded": int(q_recorded or 0),
+        }
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def fetch_department_count(years, project_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        sql = f"""
+            SELECT
+                ou.Department AS department,
+                ou.Year AS year,
+            SUM(ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AS qualified_total,
+            SUM((ou.SectionType IN {QUALIFIED_SECTION_TYPES}) AND (ou.Recorded >= 1)) AS qualified_recorded
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            WHERE ou.IsDeleted = 0
+                AND ou.Year in ({",".join(["%s"] * len(years))})
+                AND ou.Term in ('FW','SP','SU')
+                AND ou.Department <> ''
+                AND f.ProjectId = {project_id}
+            GROUP BY ou.Department, year
+            ORDER BY ou.Department ASC, year ASC;
+        """
+        params = [str(y) for y in years]
+        cursor.execute(sql, params)
+        data = cursor.fetchall()
+        return data
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# fetch_academic_year_courses
+def fetch_academic_year_courses(year, terms, project_id):
+    """Return course-level rows for an academic year across terms.
+
+    Returns a pandas DataFrame with (at minimum):
+      - Year, Term, Department, Code, Recorded, SectionType, AdoptionStatus
+
+    Filters:
+      - ou.IsDeleted = 0
+      - ou.Year = year
+      - ou.Term in terms
+      - f.ProjectId = project_id
+
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        term_placeholders = ",".join(["%s"] * len(terms))
+
+        sql = f"""
+            SELECT
+                ou.Year,
+                ou.Term,
+                ou.Department,
+                ou.Code,
+                ou.SectionType,
+                ou.Recorded,
+                bl.AdoptionStatus
+            FROM OrganizationalUnits ou
+            LEFT JOIN OrganizationalUnitAncestors oua ON ou.OrgUnitId = oua.OrgUnitId
+            LEFT JOIN Faculty f ON oua.AncestorOrgUnitId = f.FacultyId
+            LEFT JOIN (
+                    SELECT
+                        Code,
+                        CASE
+                        WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                        ELSE MAX(AdoptionStatus)
+                        END AS AdoptionStatus
+                    FROM BookList
+                    GROUP BY Code
+            ) bl ON ou.Code = bl.Code
+            WHERE ou.IsDeleted = 0
+              AND ou.Year = %s
+              AND ou.Term IN ({term_placeholders})
+              AND f.ProjectId = {project_id}
+        """
+
+        params = [str(year)] + [str(t) for t in terms]
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+
+        column_names = [desc[0] for desc in cursor.description]
+        return pd.DataFrame(rows, columns=column_names)
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def campus_store_complete(year, term):
+    """Set OrganizationalUnits.Recorded = 4 when Campus Store adoption is complete (exact code match)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = """
+            UPDATE OrganizationalUnits ou
+            JOIN (
+                SELECT
+                    Code,
+                    CASE
+                    WHEN SUM(AdoptionStatus = 'Complete') > 0 THEN 'Complete'
+                    ELSE MAX(AdoptionStatus)
+                    END AS AdoptionStatus
+                FROM BookList
+                GROUP BY Code
+            ) bl ON ou.Code = bl.Code
+            SET ou.Recorded = 4
+            WHERE ou.Recorded = 0
+              AND bl.AdoptionStatus = 'Complete'
+              AND ou.Year = %s
+              AND ou.Term = %s;
+        """
+        logger.info("Updating OrganizationalUnits.Recorded from 0 to 4 using exact code match")
+        cursor.execute(sql, (str(year), str(term)))
+        conn.commit()
+        logger.info(f"Updated {cursor.rowcount} rows.")
+
+    except mysql.connector.Error as err:
+        logger.error(f"campus_store_complete failed: {err}")
+        conn.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        conn.close()
+
+def mark_ignored_sections(year, term):
+    """
+    Set OrganizationalUnits.Recorded = 5 for ignored section types
+    when they are currently unrecorded (Recorded = 0).
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        sql = f"""
+            UPDATE OrganizationalUnits
+            SET Recorded = 5
+            WHERE Recorded = 0
+              AND SectionType IN {IGNORED_SECTION_TYPES}
+              AND Year = %s
+              AND Term = %s;
+        """
+        logger.info(
+            "Updating OrganizationalUnits.Recorded from 0 to 5 for IGNORED_SECTION_TYPES"
+        )
+        cursor.execute(sql, (str(year), str(term)))
+        conn.commit()
+        logger.info(f"Updated {cursor.rowcount} rows (ignored sections).")
+
+    except mysql.connector.Error as err:
+        logger.error(f"mark_ignored_sections failed: {err}")
+        conn.rollback()
+        raise
+
+    finally:
+        cursor.close()
+        conn.close()

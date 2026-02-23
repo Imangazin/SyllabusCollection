@@ -14,6 +14,7 @@ import re
 dotenv_file = dotenv.find_dotenv()
 dotenv.load_dotenv(dotenv_file)
 bspace_url = os.environ["bspace_url"]
+api_route = os.environ["api_route"]
 
 # Gets access (7200 seconds) and refresh tokens. Calls put_config() to update the refresh token in file.
 def trade_in_refresh_token(config):
@@ -303,12 +304,32 @@ def generate_syllabus_html(df, base_output_dir):
         </head>
         <body>
             <h2>Syllabus for {department} - {year} - {term}</h2>
-            <p>Total Courses: {total_courses}, Syllabuses Available or Exempted: {recorded_syllabuses} ({recorded_percentage:.2f}%)</p>
-            <p><a href="https://cpi.brocku.ca/api/report?department={department}&year={year}&term={term}&token={api_auth.generate_token(f'{department}-{year}-{term}')}" class="download-report">Download Report</a></p>
+
+            <div class="kpi-container">
+                <div class="kpi-box kpi-total">
+                    <div class="kpi-value">{total_courses}</div>
+                    <div class="kpi-label">Total Courses</div>
+                </div>
+                <div class="kpi-box kpi-complete">
+                    <div class="kpi-value">{recorded_syllabuses}</div>
+                    <div class="kpi-label">Complete</div>
+                </div>
+                <div class="kpi-box kpi-incomplete">
+                    <div class="kpi-value">{total_courses - recorded_syllabuses}</div>
+                    <div class="kpi-label">Needs Attention</div>
+                </div>
+                <div class="kpi-box kpi-percent">
+                    <div class="kpi-value">{recorded_percentage:.1f}%</div>
+                    <div class="kpi-label">Completion Rate</div>
+                </div>
+            </div>
+
+            <p><a href="https://cpi.brocku.ca/{api_route}/report?department={department}&year={year}&term={term}&token={api_auth.generate_token(f'{department}-{year}-{term}')}" class="download-report">Download Report</a></p>
             <table id="{department}-{year}-{term}" class="display">
                 <thead>
                     <tr>
                         <th>Course Code</th>
+                        <th>Campus Stores Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -323,8 +344,12 @@ def generate_syllabus_html(df, base_output_dir):
             exempt_value = 'exempt'
             # Handle NaN values in Recorded
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
+            is_complete = row['Recorded'] in (1, 2, 4, 5)
+            row_class = 'row-complete' if is_complete else 'row-incomplete'
 
-            if row['Recorded']==1:
+            if row['Recorded']==0:
+                syllabus_link = row['Code']
+            elif row['Recorded']==1:
                 if pd.isna(row['Location']):
                     syllabus_link = row['Code']
                 elif classify_location(row['Location']) == 'Link':
@@ -336,18 +361,23 @@ def generate_syllabus_html(df, base_output_dir):
                     href = f"/content/enforced/{row['ProjectId']}-Project-{row['ProjectId']}-PSPT/{row['Department']}/{row['Year']}/{row['Term']}/syllabus_{row['Code']}{file_extension}"
                     syllabus_link = f"<a href={href} target='_blank'>{row['Code']}</a>"
             elif row['Recorded']==2:
-                syllabus_link = f"{row['Code']} (exempted)"
+                syllabus_link = f"{row['Code']} (user-exempted)"
                 exempt_value = 'unexempt'
-            else: 
-                syllabus_link = row['Code']
+            elif row['Recorded']==4:
+                syllabus_link = f"{row['Code']}"
+            elif row['Recorded']==5:
+                syllabus_link = f"{row['Code']} (auto-exempted)"
+                exempt_value = 'unexempt'        
+
 
             url_token = api_auth.generate_token(row['Code'])
-            upload_url = f"https://cpi.brocku.ca/api/upload?course={row['Code']}&token={url_token}&projectId={row['ProjectId']}"
-            exempt_url = f"https://cpi.brocku.ca/api/exempt?course={row['Code']}&token={url_token}&action={exempt_value}"
+            upload_url = f"https://cpi.brocku.ca/{api_route}/upload?course={row['Code']}&token={url_token}&projectId={row['ProjectId']}"
+            exempt_url = f"https://cpi.brocku.ca/{api_route}/exempt?course={row['Code']}&token={url_token}&action={exempt_value}"
 
             html_content += f"""
-                <tr>
+                <tr class="{row_class}">
                     <td>{syllabus_link}</td>
+                    <td>{row['AdoptionStatus']}</td>
                     <td>
                         <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
                         <button class="icon-btn exempt {exempt_value}" title="Exempt" data-url="{exempt_url}"></button>
@@ -359,19 +389,39 @@ def generate_syllabus_html(df, base_output_dir):
         html_content += f"""
                 </tbody>
             </table>
-            <script>$('#{department}-{year}-{term}').DataTable({{
+            <script>
+            // Custom sort type based on row class
+            // IMPORTANT: uses column cells to derive row class, so it works with ordering.
+            $.fn.dataTable.ext.order['row-class'] = function (settings, col) {{
+                return this.api()
+                    .column(col, {{ order: 'index' }})
+                    .nodes()
+                    .map(function (td) {{
+                        const tr = $(td).closest('tr');
+                        return tr.hasClass('row-incomplete') ? 0 : 1;
+                    }});
+            }};
+            $('#{department}-{year}-{term}').DataTable({{
                 lengthMenu: [
                     [50, 100, 150, 200, 250],
                     ['50 per page', '100 per page', '150 per page', '200 per page', '250 per page']
-                    ],
+                ],
                 language: {{
                     lengthMenu: '_MENU_',
                     searchPlaceholder: 'Search For ...',
                     search: '_INPUT_'
                 }},
+
                 stateSave: true,
-                info: false
-            }});</script>
+                info: false,
+
+                // Default sort: incomplete first (via custom row-class order)
+                order: [[0, 'asc']],
+                columnDefs: [
+                    {{ targets: 0, orderDataType: 'row-class' }}
+                ]
+            }});
+            </script>
             <script src="{bspace_url}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
         </body>
         </html>
