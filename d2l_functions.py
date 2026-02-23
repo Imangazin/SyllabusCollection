@@ -329,7 +329,7 @@ def generate_syllabus_html(df, base_output_dir):
                 <thead>
                     <tr>
                         <th>Course Code</th>
-                        <th>Campus Stores Status</th>
+                        <th>Campus Store Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
