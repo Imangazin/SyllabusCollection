@@ -40,8 +40,8 @@ $(document).on('click', '.download-report', function (e) {
     if (data && Array.isArray(data)) {
       // Convert JSON data to CSV
       const csvRows = [
-        ['Course Code', 'Syllabus Status'], // header
-        ...data.map(row => [row.Code, row.Recorded])
+        ['Course Code', 'Syllabus Status', 'Campus Stores Status'], // header
+        ...data.map(row => [row.Code, row.Recorded, row.AdoptionStatus])
       ].map(e => e.join(",")).join("\n");
 
       // Create a blob and trigger download
@@ -133,64 +133,76 @@ $(document).on('click', '.upload', function () {
   fileInput.click();
 });
 
-//upload syllabus
-// $(document).on('click', '.upload', function () {
-//   const $uploadBtn = $(this);
-//   $uploadBtn.addClass('loading');
-//   const uploadUrl = $(this).data('url');
+// ------------------------------
+// Adoption Status Mapping (Frontend)
+// ------------------------------
 
-//   const fileInput = $('<input type="file" style="display: none;" />');
-//   $('body').append(fileInput);
+// Map raw Campus Store/Booklist values to friendlier display values.
+// Update this object to change wording without touching backend.
+const ADOPTION_STATUS_MAP = {
+  "none": "Missing",
+  "": "Missing",
+  "null": "Missing",
+  "nan": "Missing",
+  "missing": "Missing",
+  "no titles/complete": "No Titles/Complete",
+  "complete": "Complete",
+  "oer": "OER",
+  "no store supplied materials/see instructor": "No Store Supplied Materials/See Instructor"
+};
 
-//   pendingFileDialogs++;
+function normalizeAdoptionStatusKey(value) {
+  if (value == null) return "none";
+  return String(value).trim().toLowerCase();
+}
 
-//   fileInput.on('change', function () {
+function applyAdoptionStatusMapping() {
+  // Table columns are: 0 = Course Code, 1 = Adoption Status, 2 = Action
+  const STATUS_COLUMN_INDEX = 1;
 
-//     const file = this.files[0];
-//     if (!file) {
-//       pendingFileDialogs--;
-//       $uploadBtn.removeClass('loading');
-//       fileInput.remove();
-//       return;
-//     }
+  $('table tbody tr').each(function () {
+    const $cells = $(this).find('td');
+    if ($cells.length <= STATUS_COLUMN_INDEX) return;
 
-//     pendingFileDialogs--;
-    
-//     activeRequests++;
+    const $statusCell = $cells.eq(STATUS_COLUMN_INDEX);
+    const rawText = $statusCell.text();
+    const key = normalizeAdoptionStatusKey(rawText);
 
-//     const formData = new FormData();
-//     formData.append('file', file);
+    if (Object.prototype.hasOwnProperty.call(ADOPTION_STATUS_MAP, key)) {
+      $statusCell.text(ADOPTION_STATUS_MAP[key]);
+    } else if (key === "" || key === "none" || key === "null" || key === "nan") {
+      $statusCell.text("Missing");
+    }
+  });
+}
 
-//     fetch(uploadUrl, {
-//       method: 'POST',
-//       body: formData
-//     })
-//     .then(res => res.json())
-//     .then(data => {
-//       $uploadBtn.removeClass('loading');
-//       if (data && data.status === 'success') {
-//         activeRequests--;
-//         if (activeRequests === 0 && pendingFileDialogs === 0) {
-//           location.reload();
-//         }
-//       }
-//     })
-//     .catch(err => {
-//       console.error('Upload failed:', err);
-//       $uploadBtn.removeClass('loading');
-//       activeRequests--;
-//     });
+// ------------------------------
+// Load Definitions Section
+// ------------------------------
 
-//     fileInput.remove();
-//   });
-//   fileInput.click();
+function loadDefinitionsSection() {
+  const downloadLink = document.querySelector('.download-report');
+  if (!downloadLink) return;
 
+  fetch('https://brocktest.brightspace.com/shared/Widgets/SyllabusUpload/definitions.html', { cache: 'no-store' })
+    .then(res => res.text())
+    .then(html => {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
 
-//   // Fallback in case user cancels the file dialog
-//   setTimeout(() => {
-//     pendingFileDialogs--;
-//     if ((activeRequests === 0 && pendingFileDialogs === 0)) {
-//       $uploadBtn.removeClass('loading');
-//     }
-//   }, 60000);
-// });
+      downloadLink.parentNode.insertBefore(wrapper, downloadLink);
+    })
+    .catch(err => console.error('Failed to load definitions:', err));
+}
+
+$(document).ready(function () {
+  loadDefinitionsSection();
+  applyAdoptionStatusMapping();
+
+  // Re-apply after DataTables redraw (paging/search)
+  if ($.fn.dataTable) {
+    $('table').on('draw.dt', function () {
+      applyAdoptionStatusMapping();
+    });
+  }
+});

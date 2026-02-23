@@ -248,13 +248,17 @@ def getReport():
         abort(403, "Invalid or missing signature")
 
     department_courses_df = csv_db.get_department_cources(term, year, department)
-    report_data = department_courses_df[["Code", "Recorded"]].copy()
+    report_data = department_courses_df[["Code", "Recorded", "AdoptionStatus"]].copy()
 
     def map_recorded_status(value):
         if value == 1:
             return "Uploaded"
         if value == 2:
-            return "Exempted"
+            return "User Exempted"
+        if value == 4:
+            return "Campus Store Complete"
+        if value == 5:
+            return "Auto Exempted"
         return ""
 
     report_data["Recorded"] = report_data["Recorded"].apply(map_recorded_status)

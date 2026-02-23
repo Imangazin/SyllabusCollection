@@ -329,7 +329,7 @@ def generate_syllabus_html(df, base_output_dir):
                 <thead>
                     <tr>
                         <th>Course Code</th>
-                        <th>Adaption Status</th>
+                        <th>Campus Stores Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -364,7 +364,7 @@ def generate_syllabus_html(df, base_output_dir):
                 syllabus_link = f"{row['Code']} (user-exempted)"
                 exempt_value = 'unexempt'
             elif row['Recorded']==4:
-                syllabus_link = f"{row['Code']} (Found in Campus Store)"
+                syllabus_link = f"{row['Code']}"
             elif row['Recorded']==5:
                 syllabus_link = f"{row['Code']} (auto-exempted)"
                 exempt_value = 'unexempt'        
@@ -389,19 +389,33 @@ def generate_syllabus_html(df, base_output_dir):
         html_content += f"""
                 </tbody>
             </table>
-            <script>$('#{department}-{year}-{term}').DataTable({{
+            <script>
+            $('#{department}-{year}-{term}').DataTable({{
                 lengthMenu: [
                     [50, 100, 150, 200, 250],
                     ['50 per page', '100 per page', '150 per page', '200 per page', '250 per page']
-                    ],
+                ],
                 language: {{
                     lengthMenu: '_MENU_',
                     searchPlaceholder: 'Search For ...',
                     search: '_INPUT_'
                 }},
                 stateSave: true,
-                info: false
-            }});</script>
+                info: false,
+
+                // Sort by completion state (row-incomplete first)
+                order: [[0, 'asc']],
+
+                columnDefs: [{{
+                    targets: 0,
+                    createdCell: function (td) {{
+                        const $row = $(td).closest('tr');
+                        const orderVal = $row.hasClass('row-incomplete') ? 0 : 1;
+                        $(td).attr('data-order', orderVal);
+                    }}
+                }}]
+            }});
+            </script>
             <script src="{bspace_url}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
         </body>
         </html>
