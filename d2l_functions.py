@@ -346,7 +346,6 @@ def generate_syllabus_html(df, base_output_dir):
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
             is_complete = row['Recorded'] in (1, 2, 4, 5)
             row_class = 'row-complete' if is_complete else 'row-incomplete'
-            sort_key = 1 if is_complete else 0  # 0=incomplete first, 1=complete after
 
             if row['Recorded']==0:
                 syllabus_link = row['Code']
@@ -377,7 +376,7 @@ def generate_syllabus_html(df, base_output_dir):
 
             html_content += f"""
                 <tr class="{row_class}">
-                    <td><span style="display:none;">{sort_key}</span>{syllabus_link}</td>
+                    <td>{syllabus_link}</td>
                     <td>{row['AdoptionStatus']}</td>
                     <td>
                         <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
