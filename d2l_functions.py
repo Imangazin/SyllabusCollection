@@ -390,6 +390,17 @@ def generate_syllabus_html(df, base_output_dir):
                 </tbody>
             </table>
             <script>
+            // Custom sort type based on row class
+            // IMPORTANT: uses column cells to derive row class, so it works with ordering.
+            $.fn.dataTable.ext.order['row-class'] = function (settings, col) {{
+                return this.api()
+                    .column(col, {{ order: 'index' }})
+                    .nodes()
+                    .map(function (td) {{
+                        const tr = $(td).closest('tr');
+                        return tr.hasClass('row-incomplete') ? 0 : 1;
+                    }});
+            }};
             $('#{department}-{year}-{term}').DataTable({{
                 lengthMenu: [
                     [50, 100, 150, 200, 250],
@@ -400,9 +411,15 @@ def generate_syllabus_html(df, base_output_dir):
                     searchPlaceholder: 'Search For ...',
                     search: '_INPUT_'
                 }},
+
                 stateSave: true,
                 info: false,
-                order: [[0, 'asc']]
+
+                // Default sort: incomplete first (via custom row-class order)
+                order: [[0, 'asc']],
+                columnDefs: [
+                    {{ targets: 0, orderDataType: 'row-class' }}
+                ]
             }});
             </script>
             <script src="{bspace_url}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
