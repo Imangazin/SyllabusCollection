@@ -346,6 +346,7 @@ def generate_syllabus_html(df, base_output_dir):
             row['Recorded'] = 0 if pd.isna(row['Recorded']) else int(row['Recorded'])
             is_complete = row['Recorded'] in (1, 2, 4, 5)
             row_class = 'row-complete' if is_complete else 'row-incomplete'
+            sort_key = 1 if is_complete else 0  # 0=incomplete first, 1=complete after
 
             if row['Recorded']==0:
                 syllabus_link = row['Code']
@@ -376,7 +377,7 @@ def generate_syllabus_html(df, base_output_dir):
 
             html_content += f"""
                 <tr class="{row_class}">
-                    <td>{syllabus_link}</td>
+                    <td><span style="display:none;">{sort_key}</span>{syllabus_link}</td>
                     <td>{row['AdoptionStatus']}</td>
                     <td>
                         <button class="icon-btn upload" title="Upload" data-url="{upload_url}"></button>
@@ -402,18 +403,7 @@ def generate_syllabus_html(df, base_output_dir):
                 }},
                 stateSave: true,
                 info: false,
-
-                // Sort by completion state (row-incomplete first)
-                order: [[0, 'asc']],
-
-                columnDefs: [{{
-                    targets: 0,
-                    createdCell: function (td) {{
-                        const $row = $(td).closest('tr');
-                        const orderVal = $row.hasClass('row-incomplete') ? 0 : 1;
-                        $(td).attr('data-order', orderVal);
-                    }}
-                }}]
+                order: [[0, 'asc']]
             }});
             </script>
             <script src="{bspace_url}/shared/Widgets/SyllabusUpload/js/syllabus_collection.js"></script>
